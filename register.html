@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open an account — Heliance</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="stylesheet" href="css/style.css">
+<style>
+/* ── extra styles scoped to this page only ── */
+.steps-bar { display: flex; align-items: center; gap: 0; margin-bottom: 28px; flex-wrap: nowrap; }
+.step-item { display: flex; align-items: center; gap: 10px; font-size: 12px; font-family: var(--mono); color: var(--text-faint); letter-spacing: 0.08em; }
+.step-item.active { color: var(--text); }
+.step-item.done   { color: var(--accent); }
+.step-num { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; transition: all 0.3s; }
+.step-item.active .step-num { border-color: var(--text); color: var(--text); }
+.step-item.done   .step-num { border-color: var(--accent); background: var(--accent); color: #0a0a0a; }
+.step-connector { flex: 1; height: 1px; background: var(--border); margin: 0 10px; transition: background 0.3s; }
+.step-connector.done { background: var(--accent); }
+.pass-bar-track { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.pass-bar-fill { height: 100%; width: 0%; border-radius: 2px; transition: width 0.3s, background 0.3s; background: var(--red); }
+.pass-strength-label { font-family: var(--mono); font-size: 11px; color: var(--text-faint); margin-top: 5px; letter-spacing: 0.08em; }
+.pay-detail { background: var(--bg); border: 1px solid var(--border-strong); border-radius: 8px; padding: 20px; margin-bottom: 16px; text-align: center; }
+.qr-wrap { background: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 16px; margin: 0 auto 14px auto; width: 212px; }
+.qr-wrap img { display: block; width: 180px; height: 180px; }
+.upload-zone { border: 1.5px dashed var(--border-strong); border-radius: 8px; padding: 28px 16px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 16px; position: relative; display: block; }
+.upload-zone:hover { border-color: var(--accent); background: rgba(212,255,63,0.02); }
+.upload-zone.has-file { border-color: var(--green); border-style: solid; }
+.upload-zone input { display: none; }
+.upload-zone .uz-icon { font-size: 28px; color: var(--text-dim); margin-bottom: 8px; }
+.upload-zone .uz-title { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.upload-zone .uz-sub { font-size: 12px; color: var(--text-dim); }
+.upload-zone img.preview { max-width: 100%; max-height: 180px; border-radius: 6px; margin-top: 10px; object-fit: contain; }
+.ref-display { background: var(--bg); border: 1px solid var(--border-strong); border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px; }
+.ref-display .rd-label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; color: var(--text-faint); text-transform: uppercase; margin-bottom: 10px; }
+.ref-display .rd-code { font-family: var(--mono); font-size: 22px; color: var(--accent); letter-spacing: 0.15em; display: block; margin-bottom: 12px; }
+.ref-display .rd-note { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+.ref-display .rd-note strong { color: var(--accent); }
+.hidden { display: none !important; }
+@media (max-width: 480px) {
+  .steps-bar { margin-bottom: 20px; }
+  .step-item { font-size: 10px; gap: 5px; }
+  .step-item .step-num { width: 22px; height: 22px; font-size: 10px; }
+  .step-connector { margin: 0 3px; }
+  .auth-form { max-width: 100% !important; }
+  .qr-wrap { width: 160px; padding: 10px; }
+  .qr-wrap img { width: 140px; height: 140px; }
+  .ref-display .rd-code { font-size: 18px; letter-spacing: 0.1em; }
+}
+</style>
+</head>
+<body>
+
+<div class="auth-wrap">
+  <aside class="auth-side">
+    <a href="index.html" class="logo"><span class="logo-mark"></span> Heliance</a>
+    <div class="auth-quote">
+      Open the <em>chamber.</em><br>
+      Stake into a tier, refer the room, multiply at cap.
+    </div>
+    <div class="text-mono text-dim" style="font-size:12px;">ASIA-SE-1 · LIVE</div>
+  </aside>
+
+  <main class="auth-form-side">
+    <div class="auth-form" style="max-width:480px;">
+
+      <div class="steps-bar" id="stepsBar">
+        <div class="step-item active" id="si-1"><div class="step-num">1</div>Account</div>
+        <div class="step-connector" id="sc-1"></div>
+        <div class="step-item" id="si-2"><div class="step-num">2</div>Deposit</div>
+        <div class="step-connector" id="sc-2"></div>
+        <div class="step-item" id="si-3"><div class="step-num">3</div>Done</div>
+      </div>
+
+      <div id="alertBox"></div>
+
+      <div id="step1">
+        <h2>Open account</h2>
+        <p class="lead" style="margin-bottom:28px;">Create your profile in 60 seconds.</p>
+
+        <div class="field">
+          <label>Full name</label>
+          <input type="text" id="fullname" placeholder="Juan dela Cruz" autocomplete="name">
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 16px;">
+          <div class="field">
+            <label>Email address</label>
+            <input type="email" id="email" placeholder="your@email.com" autocomplete="email" style="grid-column:span 2;">
+          </div>
+          <div class="field">
+            <label>Phone <span style="color:var(--text-faint);font-size:11px;">(optional)</span></label>
+            <input type="tel" id="phone" placeholder="+63 9XX XXX XXXX" autocomplete="tel">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="Min. 6 characters"
+            autocomplete="new-password" oninput="checkStrength(this.value)">
+          <div class="pass-bar-track"><div class="pass-bar-fill" id="passBar"></div></div>
+          <div class="pass-strength-label" id="passLbl">PASSWORD STRENGTH</div>
+        </div>
+
+        <div class="field">
+          <label>Confirm password</label>
+          <input type="password" id="passwordConfirm" placeholder="Re-enter password" autocomplete="new-password">
+        </div>
+
+        <div class="field">
+          <label>Referral code <span style="color:var(--text-faint);font-size:11px;text-transform:none;letter-spacing:normal;">(optional)</span></label>
+          <input type="text" id="refcode" placeholder="HEL-XXXXXX" style="letter-spacing:0.1em;">
+        </div>
+
+        <div class="field" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:24px;">
+          <input type="checkbox" id="terms"
+            style="margin-top:3px;width:auto;accent-color:var(--accent);flex-shrink:0;">
+          <label for="terms" style="font-size:13px;color:var(--text-dim);cursor:pointer;line-height:1.5;">
+            I agree to the <a href="#" style="color:var(--accent);">Terms of Service</a>
+            and confirm I am 18 years old or above.
+          </label>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="step1Btn" onclick="goStep2()">
+          Continue to deposit →
+        </button>
+
+        <div class="auth-foot">Already registered? <a href="login.html">Sign in</a></div>
+        <div class="auth-foot" style="margin-top:8px;"><a href="index.html" style="color:var(--text-dim);">← Back home</a></div>
+      </div>
+
+      <div id="step2" class="hidden">
+        <h2>Fund your account</h2>
+        <p class="lead" style="margin-bottom:28px;">Choose a method and send your deposit. Admin reviews within 24 h.</p>
+
+        <div class="field">
+          <label>Deposit amount (PHP)</label>
+          <input type="number" id="depAmount" placeholder="500.00" min="500" step="any"
+            oninput="showTierHint(this.value)">
+          <div class="field-hint" id="tierHint">Minimum ₱500 to fund your wallet.</div>
+        </div>
+
+        <div class="field">
+          <label>Payment method</label>
+          <select id="depMethodSel" style="width:100%;background:var(--bg);border:1px solid var(--border-strong);border-radius:8px;padding:14px 16px;color:var(--text);font-family:inherit;font-size:14px;outline:none;" onchange="pickMethod(this.value)">
+            <option value="">-- Select Method --</option>
+            <option value="gcash">GCash</option>
+            <option value="bank">Bank Transfer</option>
+            <option value="bnb">BNB Chain (Crypto)</option>
+          </select>
+        </div>
+
+        <div id="payDetails" class="hidden">
+          <div class="pay-detail">
+            <div class="qr-wrap"><img id="qrImg" alt="QR code"></div>
+            <div id="payInfo"></div>
+          </div>
+
+          <div class="field">
+            <label>Upload receipt (proof of payment)</label>
+            <label class="upload-zone" id="uploadZone">
+              <input type="file" id="receipt" accept="image/*" onchange="previewReceipt(event)">
+              <div id="uploadPrompt">
+                <div class="uz-icon">↑</div>
+                <div class="uz-title">Click to upload screenshot</div>
+                <div class="uz-sub">PNG or JPG · max 5 MB</div>
+              </div>
+            </label>
+          </div>
+
+          <button class="btn btn-primary btn-block" id="submitDepBtn" onclick="submitDeposit()">
+            Submit deposit &amp; finish →
+          </button>
+        </div>
+
+        <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="skipDeposit()">
+          Skip for now — deposit later from dashboard
+        </button>
+      </div>
+
+      <div id="step3" class="hidden">
+        <div class="alert alert-success">Account created successfully.</div>
+
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:20px;line-height:1.6;">
+          Your referral code is below. Share it — every successful signup instantly adds
+          <strong style="color:var(--accent);">₱50</strong> directly to your wallet!
+        </p>
+
+        <div class="ref-display">
+          <div class="rd-label">Your referral code</div>
+          <span class="rd-code" id="newRefCode">HEL-XXXXXX</span>
+          <button class="btn btn-ghost" id="copyBtn" onclick="copyRef()"
+            style="width:auto;padding:8px 20px;font-size:13px;">Copy</button>
+          <div class="rd-note" style="margin-top:12px;">
+            Each referral = <strong>₱50 cash bonus</strong> instantly credited to your wallet.
+          </div>
+        </div>
+
+        <div id="depStatus"></div>
+
+        <a href="dashboard.html" class="btn btn-primary btn-block" style="margin-top:8px;">
+          Go to dashboard →
+        </a>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script type="module">
+import {
+  auth, db,
+  createUserWithEmailAndPassword,
+  ref, set, get, update, push,
+  ADMIN_EMAIL
+} from './js/firebase-config.js';
+
+let createdUid     = null;
+let createdEmail   = null;
+let createdName    = null; 
+let selectedMethod = null;
+let receiptDataUrl = null;
+
+function fmt(n) {
+  return '₱' + Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+
+function showAlert(msg, type = 'error') {
+  document.getElementById('alertBox').innerHTML =
+    `<div class="alert alert-${type}">${msg}</div>`;
+}
+
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const si = document.getElementById('si-' + i);
+    si.classList.remove('active','done');
+    if (i < n)  si.classList.add('done');
+    if (i === n) si.classList.add('active');
+  });
+  [1,2].forEach(i => {
+    const sc = document.getElementById('sc-' + i);
+    sc.classList.toggle('done', i < n);
+  });
+  document.getElementById('step1').classList.toggle('hidden', n !== 1);
+  document.getElementById('step2').classList.toggle('hidden', n !== 2);
+  document.getElementById('step3').classList.toggle('hidden', n !== 3);
+  document.getElementById('alertBox').innerHTML = '';
+  window.scrollTo(0, 0);
+}
+
+window.checkStrength = function(val) {
+  let score = 0;
+  if (val.length >= 6)            score++;
+  if (val.length >= 10)           score++;
+  if (/[A-Z]/.test(val))          score++;
+  if (/[0-9]/.test(val))          score++;
+  if (/[^A-Za-z0-9]/.test(val))   score++;
+  const pct    = (score / 5) * 100;
+  const colors = ['#f87171','#fb923c','#fbbf24','#4ade80','#d4ff3f'];
+  const labels = ['VERY WEAK','WEAK','FAIR','STRONG','VERY STRONG'];
+  const bar = document.getElementById('passBar');
+  const lbl = document.getElementById('passLbl');
+  bar.style.width      = pct + '%';
+  bar.style.background = score ? colors[score - 1] : '#f87171';
+  lbl.textContent      = score ? labels[score - 1] : 'PASSWORD STRENGTH';
+  lbl.style.color      = score ? colors[score - 1] : 'var(--text-faint)';
+};
+
+window.showTierHint = function(val) {
+  const amt  = parseFloat(val) || 0;
+  const hint = document.getElementById('tierHint');
+  if (amt >= 500) {
+    hint.innerHTML = `<span style="color:var(--accent);">${fmt(amt)}</span> → Available to stake in markets.`;
+  } else {
+    hint.textContent = 'Minimum deposit is ₱500.';
+  }
+};
+
+async function findReferrer(code) {
+  const snap = await get(ref(db, 'referralIndex/' + code));
+  return snap.exists() ? snap.val() : null;
+}
+
+window.goStep2 = async function () {
+  const fullname = document.getElementById('fullname').value.trim();
+  const email    = document.getElementById('email').value.trim().toLowerCase();
+  const phone    = document.getElementById('phone').value.trim();
+  const password = document.getElementById('password').value;
+  const confirm  = document.getElementById('passwordConfirm').value;
+  const refInput = document.getElementById('refcode').value.trim().toUpperCase();
+  const btn      = document.getElementById('step1Btn');
+
+  if (!fullname || !email || !password) {
+    showAlert('Please fill in your name, email and password.'); return;
+  }
+  if (password.length < 6) {
+    showAlert('Password must be at least 6 characters.'); return;
+  }
+  if (password !== confirm) {
+    showAlert('Passwords do not match.'); return;
+  }
+  if (!document.getElementById('terms').checked) {
+    showAlert('Please agree to the Terms of Service to continue.'); return;
+  }
+
+  btn.innerHTML = '<span class="spinner"></span> Creating account…';
+  btn.disabled  = true;
+
+  try {
+    let referrerUid = null;
+    if (refInput) {
+      referrerUid = await findReferrer(refInput);
+      if (!referrerUid) {
+        showAlert('Invalid referral code. Please check and try again.');
+        btn.innerHTML = 'Continue to deposit →';
+        btn.disabled  = false;
+        return;
+      }
+    }
+
+    const cred   = await createUserWithEmailAndPassword(auth, email, password);
+    const uid    = cred.user.uid;
+    const myCode = 'HEL-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    createdUid   = uid;
+    createdEmail = email;
+    createdName  = fullname;
+    
+    let userRole = 'user';
+    if (typeof ADMIN_EMAIL === 'string' && email === ADMIN_EMAIL.toLowerCase()) {
+        userRole = 'admin';
+    }
+
+    // CREATE THE NEW USER DATA FIRST (This will always succeed)
+    await set(ref(db, `users/${uid}`), {
+      uid,
+      fullname,
+      email,
+      phone:             phone || "",
+      role:              userRole,
+      referralCode:      myCode,
+      referredBy:        referrerUid || "",
+      referralCount:     0,
+      walletBalance:     0,
+      activeStake:       0,
+      currentTier:       "",
+      currentMultiplier: 0,
+      networth:          0,
+      suspended:         false,
+      createdAt:         Date.now()
+    });
+
+    await set(ref(db, `referralIndex/${myCode}`), uid);
+
+    // 🔥 ISOLATED THE REFERRAL REWARD SO IT WON'T CRASH THE REGISTRATION
+    if (referrerUid) {
+      try {
+        const rSnap = await get(ref(db, `users/${referrerUid}`));
+        const rUser = rSnap.val() || {};
+        const newRefCount = (rUser.referralCount || 0) + 1;
+        const newWallet = (parseFloat(rUser.walletBalance) || 0) + 50;
+
+        await update(ref(db, `users/${referrerUid}`), {
+          referralCount: newRefCount,
+          walletBalance: newWallet
+        });
+
+        const hk = push(ref(db, `stakeHistory/${referrerUid}`)).key;
+        await set(ref(db, `stakeHistory/${referrerUid}/${hk}`), {
+          type: 'referral',
+          amount: 50,
+          ts: Date.now()
+        });
+      } catch (refError) {
+        console.warn("Referral reward blocked by Firebase rules. Registration continuing normally.", refError);
+      }
+    }
+
+    const gSnap = await get(ref(db, 'stats/global'));
+    const g = gSnap.val() || { totalUsers:0, totalRaised:0, totalNetworth:0, activeDeposits:0 };
+    g.totalUsers = (g.totalUsers || 0) + 1;
+    await set(ref(db, 'stats/global'), g);
+
+    document.getElementById('newRefCode').textContent = myCode;
+    setStep(2);
+
+  } catch (err) {
+    console.error("Firebase Registration Error:", err);
+    let msg = 'Registration failed: ' + (err.message || 'Unknown error');
+    if (err.code === 'auth/email-already-in-use') msg = 'An account with this email already exists.';
+    if (err.code === 'auth/weak-password')         msg = 'Password too weak (min 6 chars).';
+    if (err.code === 'auth/invalid-email')          msg = 'Invalid email address.';
+    showAlert(msg);
+    btn.innerHTML = 'Continue to deposit →';
+    btn.disabled  = false;
+  }
+};
+
+window.pickMethod = function(m) {
+  selectedMethod = m;
+  if (!m) {
+    document.getElementById('payDetails').classList.add('hidden');
+    return;
+  }
+  document.getElementById('payDetails').classList.remove('hidden');
+  
+  const imgEl = document.getElementById('qrImg');
+  let lblText = '';
+  
+  if (m === 'bank') {
+    imgEl.src = 'images/qr-bank.jfif';
+    imgEl.alt = 'Bank Transfer QR Code';
+    lblText = 'Bank QR';
+  } else if (m === 'bnb') {
+    imgEl.src = 'images/qr-bnb.jfif';
+    imgEl.alt = 'BNB Chain QR Code';
+    lblText = 'BNB/USDT QR';
+  } else if (m === 'gcash') {
+    imgEl.src = 'images/qr-gcash.jfif';
+    imgEl.alt = 'GCash QR Code';
+    lblText = 'GCash QR';
+  }
+  
+  document.getElementById('payInfo').innerHTML = `
+    <div style="font-family:var(--mono); font-size:12px; color:var(--text-dim); text-align:center; margin-top:12px;">
+      ${lblText}
+    </div>`;
+};
+
+window.previewReceipt = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    showAlert('File too large. Max 5 MB.'); return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    receiptDataUrl = ev.target.result;
+    const zone = document.getElementById('uploadZone');
+    document.getElementById('uploadPrompt').innerHTML =
+      `<img src="${receiptDataUrl}" class="preview"><div style="margin-top:10px;color:var(--green);font-size:13px;">✓ ${file.name}</div>`;
+    zone.classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
+};
+
+window.submitDeposit = async function () {
+  const amount = parseFloat(document.getElementById('depAmount').value);
+  const btn    = document.getElementById('submitDepBtn');
+
+  if (!amount || amount < 500) { showAlert('Minimum deposit is ₱500.'); return; }
+  if (!selectedMethod)         { showAlert('Please choose a payment method.'); return; }
+  if (!receiptDataUrl)         { showAlert('Please upload your payment receipt.'); return; }
+
+  btn.innerHTML = '<span class="spinner"></span> Submitting…';
+  btn.disabled  = true;
+
+  try {
+    const depRef = push(ref(db, 'deposits'));
+    await set(depRef, {
+      id:        depRef.key,
+      uid:       createdUid,
+      userName:  createdName, 
+      userEmail: createdEmail,
+      amount,
+      method:    selectedMethod,
+      receipt:   receiptDataUrl,
+      status:    'pending',
+      createdAt: Date.now()
+    });
+
+    document.getElementById('depStatus').innerHTML = `
+      <div class="alert alert-info" style="background:rgba(212,255,63,0.06);border-color:rgba(212,255,63,0.2);color:var(--accent);margin-top:16px;">
+        Deposit of <strong>${'₱' + amount.toLocaleString('en-US',{minimumFractionDigits:2})}</strong> submitted via
+        <strong>${selectedMethod.toUpperCase()}</strong> — pending admin review.
+      </div>`;
+
+    setStep(3);
+  } catch (err) {
+    console.error("Deposit Error:", err);
+    showAlert('Failed to submit deposit. Please try again from your dashboard.');
+    btn.innerHTML = 'Submit deposit & finish →';
+    btn.disabled  = false;
+  }
+};
+
+window.skipDeposit = function () {
+  document.getElementById('depStatus').innerHTML = '';
+  setStep(3);
+};
+
+window.copyRef = async function () {
+  const code = document.getElementById('newRefCode').textContent;
+  await navigator.clipboard.writeText(code);
+  const btn = document.getElementById('copyBtn');
+  btn.textContent = 'Copied!';
+  setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
+};
+</script>
+</body>
+</html>

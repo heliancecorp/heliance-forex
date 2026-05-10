@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maintenance — Heliance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500&family=Inter+Tight:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:           #0a0a0a;
+    --bg-elev:      #111111;
+    --bg-card:      #141414;
+    --border:       #1f1f1f;
+    --border-strong:#2a2a2a;
+    --text:         #f5f5f0;
+    --text-dim:     #8a8a85;
+    --text-faint:   #5a5a55;
+    --accent:       #d4ff3f;
+    --accent-dim:   #a8cc32;
+    --green:        #4ade80;
+    --serif:        'Fraunces', serif;
+    --sans:         'Inter Tight', sans-serif;
+    --mono:         'JetBrains Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ── Background grain + glow ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle at 15% 10%,  rgba(212,255,63,.06), transparent 45%),
+      radial-gradient(circle at 85% 85%,  rgba(212,255,63,.04), transparent 45%),
+      radial-gradient(circle at 50% 50%,  rgba(212,255,63,.02), transparent 60%);
+    z-index: 0;
+  }
+
+  /* Subtle noise texture overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: .025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+    z-index: 0;
+  }
+
+  /* ── Layout ── */
+  .wrap {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+  }
+
+  /* ── Logo ── */
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 64px;
+    animation: fadeDown .8s ease both;
+  }
+
+  .logo-svg { display: block; }
+
+  /* ── Status pill ── */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border: 1px solid rgba(212,255,63,.25);
+    border-radius: 999px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .12em;
+    color: var(--accent);
+    margin-bottom: 28px;
+    animation: fadeDown .8s .1s ease both;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(212,255,63,.4); }
+    50%       { opacity: .6; box-shadow: 0 0 0 5px rgba(212,255,63,0); }
+  }
+
+  /* ── Main heading ── */
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(48px, 10vw, 100px);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -.04em;
+    text-align: center;
+    margin-bottom: 24px;
+    animation: fadeDown .8s .15s ease both;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  /* ── Sub text ── */
+  .sub {
+    font-size: clamp(15px, 2vw, 18px);
+    color: var(--text-dim);
+    text-align: center;
+    max-width: 520px;
+    line-height: 1.65;
+    margin-bottom: 48px;
+    animation: fadeDown .8s .2s ease both;
+  }
+
+  /* ── Info card ── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    padding: 28px 36px;
+    max-width: 480px;
+    width: 100%;
+    margin-bottom: 48px;
+    animation: fadeDown .8s .25s ease both;
+  }
+
+  .card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+
+  .card-row:last-child { border-bottom: none; }
+
+  .card-row .lbl {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .08em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  .card-row .val {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .card-row .val.accent { color: var(--accent); font-weight: 500; }
+  .card-row .val.amber  { color: #fbbf24; }
+
+  /* ── Progress bar ── */
+  .prog-wrap {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .prog-lbl {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .prog-track {
+    height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .prog-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-dim));
+    animation: fillBar 2s 1s ease both;
+    transform-origin: left;
+  }
+
+  @keyframes fillBar {
+    from { width: 0%; }
+    to   { width: 72%; }
+  }
+
+  /* ── Contact line ── */
+  .contact {
+    font-size: 13px;
+    color: var(--text-faint);
+    text-align: center;
+    font-family: var(--mono);
+    animation: fadeDown .8s .35s ease both;
+  }
+
+  .contact a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(212,255,63,.3);
+    transition: border-color .2s;
+  }
+
+  .contact a:hover { border-color: var(--accent); }
+
+  /* ── Decorative corners ── */
+  .corner {
+    position: fixed;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+  .corner-tl { top: 24px; left: 28px; }
+  .corner-tr { top: 24px; right: 28px; text-align: right; }
+  .corner-bl { bottom: 24px; left: 28px; }
+  .corner-br { bottom: 24px; right: 28px; text-align: right; }
+
+  /* ── Animated border accent on card ── */
+  .card { position: relative; overflow: hidden; }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { opacity: 0; transform: translateX(-100%); }
+    50%       { opacity: 1; transform: translateX(100%); }
+  }
+
+  /* ── Entrance animations ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .logo-area { margin-bottom: 40px; }
+    .card { padding: 22px 20px; }
+    h1 { font-size: clamp(38px, 12vw, 60px); }
+    .corner { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Corner labels -->
+<div class="corner corner-tl">HELIANCE · ASIA-SE-1</div>
+<div class="corner corner-tr" id="live-time"></div>
+<div class="corner corner-bl">SYSTEM STATUS</div>
+<div class="corner corner-br">© 2025 HELIANCE</div>
+
+<div class="wrap">
+
+  <!-- Logo -->
+  <div class="logo-area">
+    <svg class="logo-svg" width="180" height="48" viewBox="0 0 220 60" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="b1"/>
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="b2"/>
+          <feMerge><feMergeNode in="b1"/><feMergeNode in="b2"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <g filter="url(#glow)">
+        <path d="M 28 15 A 8 8 0 1 1 20 15 A 8 8 0 0 1 28 15 Z" fill="#d4ff3f"/>
+        <path d="M 10 15 L 18 15 L 18 45 L 10 45 Z" fill="#d4ff3f"/>
+        <path d="M 30 15 L 38 15 L 38 45 L 30 45 Z" fill="#d4ff3f"/>
+        <path d="M 18 28 L 30 28 L 30 32 L 18 32 Z" fill="#d4ff3f"/>
+        <path d="M 10 12 L 18 12 L 24 5 L 30 12 L 38 12 C 38 8, 30 2, 24 2 C 18 2, 10 8, 10 12 Z" fill="#d4ff3f"/>
+      </g>
+      <text x="56" y="42" font-family="'Fraunces', serif" font-size="34" font-weight="600" fill="#ffffff" letter-spacing="0.02em">Heliance</text>
+    </svg>
+  </div>
+
+  <!-- Status pill -->
+  <div class="status-pill">
+    <span class="status-dot"></span>
+    SCHEDULED MAINTENANCE
+  </div>
+
+  <!-- Heading -->
+  <h1>Back <em>soon.</em></h1>
+
+  <!-- Sub -->
+  <p class="sub">
+    We're upgrading the platform to serve you better.
+    Markets, stakes, and your wallet are all safe —
+    we'll be back shortly.
+  </p>
+
+  <!-- Info card -->
+  <div class="card">
+    <div class="card-row">
+      <span class="lbl">Status</span>
+      <span class="val amber">⚙ Under Maintenance</span>
+    </div>
+    <div class="card-row">
+      <span class="lbl">Started</span>
+      <span class="val" id="started-time">—</span>
+    </div>
+    <div class="card-row">
+      <span class="lbl">Est. Return</span>
+      <span class="val accent">Within 24 hours</span>
+    </div>
+    <div class="card-row">
+      <span class="lbl">Your data</span>
+      <span class="val" style="color:var(--green);">✓ Safe &amp; secured</span>
+    </div>
+    <div class="prog-wrap">
+      <div class="prog-lbl"><span>Upgrade progress</span><span>72%</span></div>
+      <div class="prog-track"><div class="prog-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- Contact -->
+  <p class="contact">
+    Urgent? Reach us at&nbsp;
+    <a href="mailto:theheliance@gmail.com">theheliance@gmail.com</a>
+  </p>
+
+</div>
+
+<script>
+  // Live clock (top-right corner)
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('live-time').textContent =
+      now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) +
+      ' PHT';
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // "Started" time — hardcoded to when you actually put the site in maintenance.
+  // Edit this date/time to match when you uploaded this page.
+  const started = new Date('2025-05-11T00:00:00+08:00'); // ← change this
+  document.getElementById('started-time').textContent =
+    started.toLocaleString('en-PH', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+  // ── Optional: auto-redirect when maintenance lifts ──
+  // Set a flag in your hosting (e.g. rename this file back to index.html)
+  // and uncomment the line below to poll every 30s:
+  // setInterval(() => fetch('/').then(r => { if(r.ok && r.url !== location.href) location.reload(); }), 30000);
+</script>
+</body>
+</html>

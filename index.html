@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heliance — Forex & Stock Trading</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+.ticker-wrap{background:var(--bg-elev);border-top:1px solid var(--border);border-bottom:1px solid var(--border);overflow:hidden;padding:9px 0;}
+.ticker-tape{display:flex;gap:44px;animation:tick 38s linear infinite;width:max-content;}
+.ticker-tape:hover{animation-play-state:paused;}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ti{display:flex;align-items:center;gap:9px;white-space:nowrap;font-family:var(--mono);font-size:12px;}
+.ti-s{color:var(--text);font-weight:600;}.ti-p{color:var(--text);}
+.ti-c.up{color:var(--green);}.ti-c.dn{color:var(--red);}
+
+.hero-grid{display:grid;grid-template-columns:1fr 400px;gap:48px;align-items:center;padding:80px 0 56px;}
+.hero-tag2{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);border:1px solid rgba(212,255,63,.25);padding:6px 14px;border-radius:999px;margin-bottom:22px;}
+.hero-tag2::before{content:'';width:6px;height:6px;background:var(--green);border-radius:50%;animation:pb 1.8s ease infinite;}
+@keyframes pb{0%,100%{opacity:1}50%{opacity:.3}}
+.hero-h1{font-family:var(--serif);font-size:clamp(40px,6vw,76px);font-weight:500;line-height:1.04;letter-spacing:-.04em;margin-bottom:18px;}
+.hero-h1 em{font-style:italic;color:var(--accent);}
+.hero-qs{margin-bottom:28px;}
+.hero-q{font-family:var(--mono);font-size:12px;color:var(--text-dim);letter-spacing:.04em;padding:7px 0;border-bottom:1px solid var(--border);}
+.hero-q:last-child{border:none;}
+.hero-q em{color:var(--accent);font-style:normal;}
+
+.hero-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:22px;}
+.hc-pair{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-bottom:4px;}
+.hc-price{font-family:var(--serif);font-size:28px;font-weight:500;letter-spacing:-.02em;margin-bottom:4px;}
+.hc-badge{font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:999px;display:inline-block;margin-bottom:14px;}
+.hc-badge.up{background:rgba(74,222,128,.12);color:var(--green);}
+.hc-badge.dn{background:rgba(248,113,113,.12);color:var(--red);}
+.hc-stats{display:grid;grid-template-columns:repeat(3,1fr);padding-top:12px;border-top:1px solid var(--border);margin-top:12px;}
+.hc-stat-lbl{font-family:var(--mono);font-size:10px;color:var(--text-faint);text-align:center;}
+.hc-stat-val{font-family:var(--mono);font-size:12px;text-align:center;margin-top:3px;}
+
+.quotes-banner{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;margin:44px 0;overflow:hidden;}
+.qb{padding:26px 30px;border-right:1px solid var(--border);}
+.qb:last-child{border:none;}
+.qb-q{font-family:var(--serif);font-size:22px;font-weight:500;letter-spacing:-.02em;line-height:1.3;margin-bottom:6px;}
+.qb-q em{font-style:italic;color:var(--accent);}
+.qb-attr{font-family:var(--mono);font-size:10px;color:var(--text-faint);letter-spacing:.1em;}
+
+.mkt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:26px;}
+.mc{background:var(--bg);padding:20px 18px;transition:background .2s;}
+.mc:hover{background:var(--bg-elev);}
+.mc-badge{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--accent);background:rgba(212,255,63,.1);padding:3px 8px;border-radius:4px;display:inline-block;margin-bottom:10px;}
+.mc-name{font-weight:600;font-size:13px;margin-bottom:2px;}
+.mc-sym{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:12px;}
+.mc-price{font-family:var(--serif);font-size:19px;font-weight:500;letter-spacing:-.02em;margin-bottom:3px;}
+.mc-chg{font-family:var(--mono);font-size:11px;margin-bottom:12px;}
+.mc-chg.up{color:var(--green);}.mc-chg.dn{color:var(--red);}
+.mc-spark{height:38px;margin-bottom:12px;}
+.mc-vol{font-family:var(--mono);font-size:10px;color:var(--text-faint);display:flex;justify-content:space-between;margin-bottom:6px;}
+.mc-spb-wrap{margin-bottom:10px;}
+.mc-spb-lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;margin-bottom:3px;}
+.mc-spb-lbl span:first-child{color:var(--text-faint);}
+.mc-spb-lbl span:last-child{color:var(--accent);font-weight:700;}
+.mc-spb-track{height:4px;background:var(--border);border-radius:3px;overflow:hidden;}
+.mc-spb-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),#a8cc32);transition:width 0.4s;}
+.mc-btn{width:100%;padding:9px;border-radius:6px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.06em;cursor:pointer;background:var(--accent);color:#0a0a0a;border:none;transition:all .2s;}
+.mc-btn:hover{background:var(--accent-dim);transform:translateY(-1px);}
+
+.chart-sect{padding:56px 0;}
+.chart-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;}
+.chart-hd{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:16px;}
+.chart-lbl{font-family:var(--serif);font-size:22px;font-weight:500;letter-spacing:-.02em;}
+.rng-row{display:flex;gap:5px;}
+.rng{font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:5px;border:1px solid var(--border-strong);color:var(--text-dim);background:none;cursor:pointer;transition:all .2s;}
+.rng.on,.rng:hover{border-color:var(--accent);color:var(--accent);background:rgba(212,255,63,.06);}
+.pair-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px;}
+.prn{font-family:var(--mono);font-size:10px;padding:4px 9px;border-radius:5px;border:1px solid var(--border-strong);color:var(--text-dim);background:none;cursor:pointer;transition:all .2s;}
+.prn.on{border-color:var(--accent);color:var(--accent);background:rgba(212,255,63,.06);}
+
+@media(max-width:980px){
+  .hero-grid{grid-template-columns:1fr; text-align: center;}
+  .hero-grid > div { display: flex; flex-direction: column; align-items: center; }
+  .hero-qs { display: flex; flex-direction: column; align-items: center; }
+  .hero-card{display:none}
+  .mkt-grid{grid-template-columns:repeat(2,1fr)}
+  .quotes-banner{grid-template-columns:1fr}
+  .qb{border-right:none;border-bottom:1px solid var(--border);}
+  .qb:last-child{border-bottom:none;}
+}
+@media(max-width:560px){.mkt-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:400px){.mkt-grid{grid-template-columns:1fr}}
+
+/* ── Mobile Nav Styles for index.html ── */
+#idxMenuBtn { display: none; z-index: 160; position: relative; }
+/* FIXED: Z-index lowered to 90 so it sits behind the Navigation bar, allowing buttons to be clicked */
+.idx-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); z-index: 90; }
+.idx-backdrop.show { display: block; }
+@media(max-width:720px) {
+  #idxMenuBtn { display: inline-flex; }
+  .nav-links {
+    position: fixed; top: 0; right: -260px; width: 260px; height: 100vh;
+    background: var(--bg-elev); flex-direction: column; align-items: stretch;
+    justify-content: flex-start; padding: 80px 24px 24px; gap: 0;
+    transition: right 0.3s ease; z-index: 150; border-left: 1px solid var(--border);
+  }
+  .nav-links.open { right: 0; box-shadow: -4px 0 24px rgba(0,0,0,0.6); }
+  .nav-links a:not(.btn) { display: block !important; padding: 16px 0; border-bottom: 1px solid var(--border); font-size: 15px; }
+  .nav-links .btn { margin-top: 16px; text-align: center; justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<div class="idx-backdrop" id="idxBackdrop" onclick="toggleMobileNav()"></div>
+
+<nav class="nav" style="display: block; padding: 16px 0;">
+  <div class="container" style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0 16px;">
+    
+    <a href="index.html" style="display: inline-block; text-decoration: none; margin-top:4px;">
+      <svg width="220" height="60" viewBox="0 0 220 60" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle;">
+        <defs>
+          <filter id="helianceGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur1" />
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur2" />
+            <feMerge>
+              <feMergeNode in="blur1" />
+              <feMergeNode in="blur2" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <g filter="url(#helianceGlow)">
+          <path d="M 28 15 A 8 8 0 1 1 20 15 A 8 8 0 0 1 28 15 Z" fill="#d4ff3f"/> 
+          <path d="M 10 15 L 18 15 L 18 45 L 10 45 Z" fill="#d4ff3f"/> 
+          <path d="M 30 15 L 38 15 L 38 45 L 30 45 Z" fill="#d4ff3f"/> 
+          <path d="M 18 28 L 30 28 L 30 32 L 18 32 Z" fill="#d4ff3f"/> 
+          <path d="M 10 12 L 18 12 L 24 5 L 30 12 L 38 12 C 38 8, 30 2, 24 2 C 18 2, 10 8, 10 12 Z" fill="#d4ff3f"/> 
+        </g>
+        <text x="56" y="42" font-family="'Poppins', 'Inter', sans-serif" font-size="34" font-weight="600" fill="#ffffff" letter-spacing="0.02em">Heliance</text>
+      </svg>
+    </a>
+    
+    <div class="nav-links" id="nav-links-box">
+      <a href="#markets">Markets</a><a href="#tiers">Tiers</a><a href="#contact">Support</a>
+      <a href="login.html" class="btn btn-ghost btn-sm">Sign in</a>
+      <a href="register.html" class="btn btn-primary btn-sm">Open account</a>
+    </div>
+    
+    <button class="menu-toggle" id="idxMenuBtn" onclick="toggleMobileNav()">☰</button>
+  
+  </div>
+</nav>
+
+<div class="ticker-wrap"><div class="ticker-tape" id="tape"></div></div>
+
+<div class="container">
+
+  <div class="hero-grid">
+    <div>
+      <div class="hero-tag2">Live market · Prices in PHP</div>
+      <h1 class="hero-h1">Trade forex &<br><em>stock markets</em><br>the smart way.</h1>
+      <div class="hero-qs">
+        <div class="hero-q"><em>"</em> No hustle trading, easy profit. <em>"</em></div>
+        <div class="hero-q"><em>"</em> Forex trading made easier. <em>"</em></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+        <a href="register.html" class="btn btn-primary">Start trading →</a>
+        <a href="#markets" class="btn btn-ghost">View markets</a>
+      </div>
+    </div>
+    <div class="hero-card">
+      <div class="hc-pair">XAU / PHP · GOLD</div>
+      <div class="hc-price" id="hc-price">₱133,455</div>
+      <span class="hc-badge up" id="hc-chg">▲ +0.00%</span>
+      <canvas id="heroChart" height="110"></canvas>
+      <div class="hc-stats">
+        <div><div class="hc-stat-lbl">Open</div><div class="hc-stat-val" id="hc-open">—</div></div>
+        <div><div class="hc-stat-lbl">High</div><div class="hc-stat-val" style="color:var(--green)" id="hc-high">—</div></div>
+        <div><div class="hc-stat-lbl">Low</div><div class="hc-stat-val" style="color:var(--red)" id="hc-low">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="stats-strip">
+    <div class="stat-cell"><div class="stat-label">Total Raised</div><div class="stat-value" id="g-raised">₱0</div><div class="stat-sub">across all tiers</div></div>
+    <div class="stat-cell"><div class="stat-label">Projects Done</div><div class="stat-value" id="g-projects-done">200</div><div class="stat-sub">platform milestone</div></div>
+    <div class="stat-cell"><div class="stat-label">Users Worldwide</div><div class="stat-value" id="g-users">0</div><div class="stat-sub">verified accounts</div></div>
+    <div class="stat-cell"><div class="stat-label">Active Deposits</div><div class="stat-value" id="g-active">0</div><div class="stat-sub">live positions</div></div>
+  </section>
+
+  <section class="section" style="padding-top:56px; padding-bottom:0;">
+    <div class="section-head">
+      <div><h2 class="section-title" style="font-family:var(--serif);font-size:38px;font-weight:500;letter-spacing:-.03em;">Trending Pools 🔥</h2></div>
+      <p class="section-sub">These markets are filling up fast. Stake before the pool caps out!</p>
+    </div>
+    <div id="trending-pools-wrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;"></div>
+  </section>
+
+  <div class="quotes-banner">
+    <div class="qb"><div class="qb-q">"No hustle trading,<br><em>easy profit."</em></div><div class="qb-attr">— Heliance Motto</div></div>
+    <div class="qb"><div class="qb-q">"Forex trading<br><em>made easier."</em></div><div class="qb-attr">— The Heliance Way</div></div>
+  </div>
+
+  <section id="markets" style="padding:0;">
+    <div class="section-head">
+      <div><h2 class="section-title" style="font-family:var(--serif);font-size:38px;font-weight:500;letter-spacing:-.03em;">Live markets <em style="color:var(--accent);font-style:italic;">in PHP.</em></h2></div>
+      <p class="section-sub">Real-time prices. Click Stake — account required.</p>
+    </div>
+    <div class="mkt-grid" id="mktGrid"></div>
+  </section>
+
+  <section class="chart-sect">
+    <div class="chart-card">
+      <div class="chart-hd">
+        <div>
+          <div class="chart-lbl" id="bigLbl">XAU/PHP · Gold</div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--accent);margin-top:3px;" id="bigPriceLbl"></div>
+        </div>
+        <div class="rng-row">
+          <button class="rng on" onclick="setRng(1,this)">1D</button>
+          <button class="rng" onclick="setRng(7,this)">1W</button>
+          <button class="rng" onclick="setRng(30,this)">1M</button>
+        </div>
+      </div>
+      <div class="pair-row" id="pairRow"></div>
+      <canvas id="bigChart" height="240"></canvas>
+    </div>
+  </section>
+
+  <section id="tiers" class="section">
+    <div class="section-head">
+      <div><h2 class="section-title" style="font-family:var(--serif);font-size:38px;font-weight:500;letter-spacing:-.03em;">Eight tiers. <em style="color:var(--accent);font-style:italic;font-family:var(--serif);">One ladder.</em></h2></div>
+      <p class="section-sub">Stake higher, earn bigger. Cashout unlocks at user cap.</p>
+    </div>
+    <div class="tier-grid">
+      <div class="tier-card"><div class="tier-stake">TIER 01</div><div class="tier-mult">2<sup>×</sup></div><div class="tier-amount">₱500</div><div class="tier-cap">CAP · 1,000 users</div></div>
+      <div class="tier-card"><div class="tier-stake">TIER 02</div><div class="tier-mult">2.5<sup>×</sup></div><div class="tier-amount">₱1,000</div><div class="tier-cap">CAP · 1,000 users</div></div>
+      <div class="tier-card"><div class="tier-stake">TIER 03</div><div class="tier-mult">3<sup>×</sup></div><div class="tier-amount">₱1,500</div><div class="tier-cap">CAP · 1,000 users</div></div>
+      <div class="tier-card featured"><div class="tier-stake">TIER 04</div><div class="tier-mult">3.5<sup>×</sup></div><div class="tier-amount">₱3,000</div><div class="tier-cap">CAP · 1,000 users</div></div>
+      <div class="tier-card"><div class="tier-stake">TIER 05</div><div class="tier-mult">4<sup>×</sup></div><div class="tier-amount">₱6,000</div><div class="tier-cap">CAP · 1,000 users</div></div>
+      <div class="tier-card"><div class="tier-stake">TIER 06</div><div class="tier-mult">4.5<sup>×</sup></div><div class="tier-amount">₱12,000</div><div class="tier-cap">CAP · 500 users</div></div>
+      <div class="tier-card"><div class="tier-stake">TIER 07</div><div class="tier-mult">5<sup>×</sup></div><div class="tier-amount">₱20,000</div><div class="tier-cap">CAP · 500 users</div></div>
+      <div class="tier-card featured"><div class="tier-stake">TIER 08</div><div class="tier-mult">20<sup>×</sup></div><div class="tier-amount">₱50,000</div><div class="tier-cap">CAP · 100 users</div></div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0;" id="contact">
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">How it works</div></div>
+        <div class="panel-body">
+          <ol style="list-style:none;">
+            <li style="padding:13px 0;border-bottom:1px solid var(--border);display:flex;gap:14px;"><span style="font-family:var(--mono);color:var(--accent);font-size:13px;flex-shrink:0;">01.</span><div><div style="font-weight:600;margin-bottom:3px;">Open an account</div><div class="text-dim" style="font-size:13px;">Register free, fund via Bank or BNB Chain.</div></div></li>
+            <li style="padding:13px 0;border-bottom:1px solid var(--border);display:flex;gap:14px;"><span style="font-family:var(--mono);color:var(--accent);font-size:13px;flex-shrink:0;">02.</span><div><div style="font-weight:600;margin-bottom:3px;">Stake on instruments</div><div class="text-dim" style="font-size:13px;">Pick Gold, stocks, forex — stake to lock into a multiplier tier.</div></div></li>
+            <li style="padding:13px 0;border-bottom:1px solid var(--border);display:flex;gap:14px;"><span style="font-family:var(--mono);color:var(--accent);font-size:13px;flex-shrink:0;">03.</span><div><div style="font-weight:600;margin-bottom:3px;">Refer &amp; earn more</div><div class="text-dim" style="font-size:13px;">Every referral = ₱50 instant cash to your wallet.</div></div></li>
+            <li style="padding:13px 0;display:flex;gap:14px;"><span style="font-family:var(--mono);color:var(--accent);font-size:13px;flex-shrink:0;">04.</span><div><div style="font-weight:600;margin-bottom:3px;">Cashout at cap</div><div class="text-dim" style="font-size:13px;">When your tier fills, all members cashout with full multiplier.</div></div></li>
+          </ol>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Talk to us</div></div>
+        <div class="panel-body">
+          <p class="text-dim" style="margin-bottom:16px;font-size:13px;">Questions about deposits, tiers, or your account? We respond within 24 hours.</p>
+          <div class="deposit-info">
+            <div class="deposit-info-row"><span>Email</span><span style="color:var(--accent);">theheliance@gmail.com</span></div>
+            <div class="deposit-info-row"><span>Hours</span><span>24/7</span></div>
+          </div>
+          <a href="mailto:theheliance@gmail.com" class="btn btn-primary btn-block">Email support</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer><div class="container foot-grid"><div>© 2026 Heliance. Trading involves risk.</div><div class="text-mono">v1.0.0 · ASIA-SE-1</div></div></footer>
+
+<script type="module">
+import { auth, db, ref, onValue, onAuthStateChanged, ADMIN_EMAIL } from './js/firebase-config.js';
+import { INSTR, prices, changes, hist, volume, fmtPHP, fmtShort, fmtVol, initPrices, onTick, registerInstrument } from './js/prices.js';
+
+// ── Mobile Navigation Logic ──
+window.toggleMobileNav = () => {
+  document.getElementById('nav-links-box').classList.toggle('open');
+  const bd = document.getElementById('idxBackdrop');
+  if(bd) bd.classList.toggle('show');
+};
+
+document.addEventListener('click', e => {
+  if(e.target.matches('.nav-links a')) {
+    document.getElementById('nav-links-box').classList.remove('open');
+    const bd = document.getElementById('idxBackdrop');
+    if(bd) bd.classList.remove('show');
+  }
+});
+
+let bigPair='gold', bigRng=1, bigChart=null, heroChart=null;
+
+// ── Dashboard Sync Variables ──
+const INST_DEFAULT_CAPS = {
+  'xrp':1000,'gbpusd':1000,'eurusd':1000,'ada':1000,'gold':1000,'bnb':1000,'googl':1000,
+  'silver':800,'usphp':800,'amzn':800, 'oil':600,'xpt':600,'nflx':600,
+  'sol':400,'amd':400,'meta':400, 'dow':200,'msft':200,'tsla':200,
+  'sp500':100,'nas100':100, 'eth':50,'aapl':50, 'btc':20,'nvda':20
+};
+
+const instBases = {
+  'gold': 320, 'silver': 210, 'sp500': 45, 'nas100': 60, 'dow': 90, 
+  'btc': 14, 'eth': 32, 'sol': 140, 'xrp': 220, 'bnb': 190, 
+  'ada': 195, 'oil': 110, 'xpt': 160, 'eurusd': 80, 'gbpusd': 140, 
+  'usphp': 250, 'aapl': 28, 'tsla': 115, 'nvda': 16, 'amd': 130, 
+  'msft': 150, 'amzn': 310, 'googl': 280, 'meta': 270, 'nflx': 180 
+};
+
+let liveInstCounts = {};
+let allMarketItems = {};
+
+// ── Auth Check for Navbar ──
+onAuthStateChanged(auth, user => {
+  const navBox = document.getElementById('nav-links-box');
+  if (user && navBox) {
+    const dashLink = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin.html' : 'dashboard.html';
+    navBox.innerHTML = `
+      <a href="#markets">Markets</a><a href="#tiers">Tiers</a><a href="#contact">Support</a>
+      <a href="${dashLink}" class="btn btn-primary btn-sm">Go to Dashboard →</a>
+    `;
+  }
+});
+
+// ── Firebase stats ──
+onValue(ref(db,'stats/global'), snap => {
+  const d = snap.val() || {};
+  document.getElementById('g-raised').textContent = fmtShort((d.totalRaised||0) + 156958000);
+  document.getElementById('g-users').textContent  = Number((d.totalUsers||0) + 650657).toLocaleString();
+  document.getElementById('g-active').textContent = Number((d.activeDeposits||0) + 109869000).toLocaleString();
+});
+
+onValue(ref(db,'stats/global/projectsDone'), snap => {
+  const v = parseInt(snap.val()||0) + 200;
+  const el = document.getElementById('g-projects-done');
+  if(el) el.textContent = v.toLocaleString();
+});
+
+// ── Dynamic Markets Sync ──
+onValue(ref(db, 'instCounts'), snap => { 
+  liveInstCounts = snap.val() || {}; 
+  refreshAllCards(); 
+  renderTrendingPools(); 
+});
+
+onValue(ref(db,'marketItems'), snap => {
+  allMarketItems = snap.val() || {};
+  const items = snap.val() || {};
+  const existing = new Set(INSTR.map(x=>x.id));
+  let added = false;
+
+  Object.entries(items).forEach(([key, item]) => {
+    if(!item || !item.active) {
+      const idx = INSTR.findIndex(x=>x.id===key);
+      if(idx !== -1) { INSTR.splice(idx,1); added = true; }
+      return;
+    }
+    if(!existing.has(key)) {
+      const newInst = {
+        id:     key,
+        badge:  item.badge || key.toUpperCase().slice(0,4),
+        name:   item.name  || key,
+        sym:    item.sym   || (key.toUpperCase()+'/PHP'),
+        base:   item.base  || 1000,
+        vol:    item.vol   || 0.015,
+        phpMul: true,
+        custom: true,
+      };
+      INSTR.push(newInst);
+      registerInstrument({ id:key, base:item.base||1000, vol:item.vol||0.015 });
+      existing.add(key);
+      added = true;
+    }
+  });
+
+  if(added) {
+    buildGrid();
+    buildPairRow();
+    if(typeof bigChart !== 'undefined' && bigChart) { buildBigChart(); }
+  } else {
+    refreshAllCards();
+    renderTrendingPools();
+  }
+});
+
+function renderTrendingPools() {
+  const wrap = document.getElementById('trending-pools-wrap');
+  if (!wrap) return; 
+
+  const pools = INSTR.map(inst => {
+    const dbItem = allMarketItems[inst.id] || {};
+    const cap = dbItem.capTier || INST_DEFAULT_CAPS[inst.id] || 1000;
+    const baseOff = dbItem.poolBase !== undefined ? dbItem.poolBase : (instBases[inst.id] || 0);
+    const dbCount = liveInstCounts[inst.id] || 0;
+    const cnt = Math.min(cap, dbCount + baseOff);
+    return { name: inst.name, sym: inst.badge, cnt: cnt, cap: cap, pct: (cnt/cap)*100 };
+  });
+
+  pools.sort((a, b) => b.pct - a.pct);
+  const top3 = pools.filter(p => p.pct < 100).slice(0, 3);
+
+  wrap.innerHTML = top3.map((p, i) => {
+    const color = p.pct >= 90 ? '#ef4444' : p.pct >= 70 ? '#f59e0b' : 'linear-gradient(90deg,var(--accent),#a8cc32)';
+    return `<div class="prog-wrap" style="background: var(--bg-card); padding: 18px; border: 1px solid var(--border); border-radius: 8px;">
+      <div class="prog-lbl" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <span><strong style="color:var(--text);font-size:14px;">${i+1}. ${p.name}</strong> <span style="color:var(--text-dim);font-size:11px;margin-left:6px;">${p.sym}</span></span>
+        <span style="color:var(--accent);font-weight:600;font-size:13px;">${p.cnt.toLocaleString()} / ${p.cap.toLocaleString()}</span>
+      </div>
+      <div class="prog-track" style="height:6px;background:var(--border-strong);border-radius:3px;overflow:hidden;">
+        <div class="prog-fill" style="width:${p.pct}%;background:${color};transition:width 0.4s;height:100%;"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+// ── Hero card update ──
+function updateHero(){
+  const p=prices['gold'], c=changes['gold'], dir=c>=0;
+  document.getElementById('hc-price').textContent = fmtPHP('gold',p);
+  const el=document.getElementById('hc-chg');
+  el.textContent=(dir?'▲ +':'▼ ')+Math.abs(c).toFixed(2)+'%';
+  el.className='hc-badge '+(dir?'up':'dn');
+  document.getElementById('hc-open').textContent = fmtPHP('gold', p*(1-c/100));
+  document.getElementById('hc-high').textContent = fmtPHP('gold', p*1.003);
+  document.getElementById('hc-low').textContent  = fmtPHP('gold', p*0.996);
+  if (heroChart) { heroChart.data.datasets[0].data=[...hist['gold']]; heroChart.update('none'); }
+}
+
+function buildHeroChart(){
+  const ctx=document.getElementById('heroChart');
+  if(!ctx||heroChart) return;
+  heroChart=new Chart(ctx,{
+    type:'line',
+    data:{labels:hist['gold'].map(()=>''),datasets:[{data:hist['gold'],borderColor:'#d4ff3f',borderWidth:2,fill:true,
+      backgroundColor:c=>{const g=c.chart.ctx.createLinearGradient(0,0,0,110);g.addColorStop(0,'rgba(212,255,63,.15)');g.addColorStop(1,'rgba(212,255,63,0)');return g;},
+      pointRadius:0,tension:.4}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}},animation:false}
+  });
+}
+
+// ── Ticker ──
+function buildTicker(){
+  const items=INSTR.map(i=>{
+    const dir=changes[i.id]>=0;
+    return `<div class="ti"><span class="ti-s">${i.sym}</span><span class="ti-p" id="tk-${i.id}">${fmtPHP(i.id,prices[i.id])}</span><span class="ti-c ${dir?'up':'dn'}" id="tkc-${i.id}">${dir?'▲':'▼'} ${Math.abs(changes[i.id]).toFixed(2)}%</span></div>`;
+  }).join('');
+  document.getElementById('tape').innerHTML=items+items;
+}
+
+function updateTicker(id){
+  const ids=id?[id]:INSTR.map(x=>x.id);
+  ids.forEach(id=>{
+    const dir=changes[id]>=0;
+    const tk=document.getElementById('tk-'+id);
+    const tc=document.getElementById('tkc-'+id);
+    if(tk) tk.textContent=fmtPHP(id,prices[id]);
+    if(tc){tc.className='ti-c '+(dir?'up':'dn');tc.textContent=(dir?'▲':'▼')+' '+Math.abs(changes[id]).toFixed(2)+'%';}
+  });
+}
+
+// ── Market grid ──
+function buildGrid(){
+  const wrap=document.getElementById('mktGrid');
+  if(!wrap) return;
+  wrap.innerHTML='';
+  INSTR.forEach(inst=>{
+    const dir=changes[inst.id]>=0;
+    const div=document.createElement('div');
+    div.className='mc';
+    div.innerHTML=`
+      <div class="mc-badge">${inst.badge}</div>
+      <div class="mc-name">${inst.name}</div>
+      <div class="mc-sym">${inst.sym}</div>
+      <div class="mc-price" id="mp-${inst.id}">${fmtPHP(inst.id,prices[inst.id])}</div>
+      <div class="mc-chg ${dir?'up':'dn'}" id="mc-${inst.id}">${dir?'▲':'▼'} ${Math.abs(changes[inst.id]).toFixed(2)}%</div>
+      <div class="mc-vol"><span>VOL 24H</span><span id="mv-${inst.id}">${fmtVol(inst.id)}</span></div>
+      <canvas class="mc-spark" id="mcs-${inst.id}"></canvas>
+      <div class="mc-spb-wrap">
+        <div class="mc-spb-lbl"><span>Pool progress</span><span id="mspct-${inst.id}">0%</span></div>
+        <div class="mc-spb-track"><div class="mc-spb-fill" id="mspb-${inst.id}" style="width:0%"></div></div>
+      </div>
+      <button class="mc-btn" onclick="goStake('${inst.id}')">Stake ${inst.name} →</button>`;
+    wrap.appendChild(div);
+    setTimeout(()=>buildSpark(inst.id),10);
+  });
+}
+
+function buildSpark(id){
+  const ctx=document.getElementById('mcs-'+id);
+  if(!ctx||ctx._c) return;
+  const color=changes[id]>=0?'#4ade80':'#f87171';
+  ctx._c=new Chart(ctx,{
+    type:'line',
+    data:{labels:(hist[id]||[]).map(()=>''),datasets:[{data:hist[id]||[],borderColor:color,borderWidth:1.5,fill:false,pointRadius:0,tension:.4}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}},animation:false}
+  });
+}
+
+function updateCard(id){
+  const dir=changes[id]>=0;
+  const mp=document.getElementById('mp-'+id);
+  const mc=document.getElementById('mc-'+id);
+  const mv=document.getElementById('mv-'+id);
+  if(mp) mp.textContent=fmtPHP(id,prices[id]);
+  if(mc){mc.className='mc-chg '+(dir?'up':'dn');mc.textContent=(dir?'▲':'▼')+' '+Math.abs(changes[id]).toFixed(2)+'%';}
+  if(mv) mv.textContent=fmtVol(id);
+  
+  const sp=document.getElementById('mcs-'+id);
+  if(sp&&sp._c){sp._c.data.datasets[0].data=[...hist[id]];sp._c.update('none');}
+  
+  // Dashboard Sync: Update progress bar accurately
+  const dbItem = allMarketItems[id] || {};
+  const cap = dbItem.capTier || INST_DEFAULT_CAPS[id] || 1000;
+  const baseOff = dbItem.poolBase !== undefined ? dbItem.poolBase : (instBases[id] || 0);
+  const dbCount = liveInstCounts[id] || 0;
+
+  const cnt = Math.min(cap, dbCount + baseOff);
+  const pct = Math.min(100, (cnt/cap)*100);
+
+  const spb = document.getElementById(`mspb-${id}`);
+  const spc = document.getElementById(`mspct-${id}`);
+  if(spb) spb.style.width = pct.toFixed(1) + '%';
+  if(spc) spc.textContent = cnt.toLocaleString() + ' / ' + cap.toLocaleString() + ' (' + pct.toFixed(0) + '%)';
+
+  if(id==='gold') updateHero();
+  if(id===bigPair){
+    if(bigChart){bigChart.data.datasets[0].data=[...hist[id]];bigChart.update('none');}
+    const bl=document.getElementById('bigPriceLbl');
+    if(bl) bl.textContent=fmtPHP(id,prices[id])+(changes[id]>=0?' ▲ ':' ▼ ')+Math.abs(changes[id]).toFixed(2)+'%';
+  }
+}
+
+function refreshAllCards() {
+  INSTR.forEach(inst => updateCard(inst.id));
+}
+
+window.goStake=id=>window.location.href=`login.html?next=markets&stake=${id}`;
+
+// ── Big chart ──
+function buildPairRow(){
+  const wrap=document.getElementById('pairRow');
+  if(!wrap) return;
+  wrap.innerHTML='';
+  INSTR.forEach(inst=>{
+    const b=document.createElement('button');
+    b.className='prn'+(inst.id===bigPair?' on':'');
+    b.textContent=inst.badge;
+    b.title=inst.name;
+    b.onclick=()=>{
+      bigPair=inst.id;
+      document.getElementById('bigLbl').textContent=inst.sym+' · '+inst.name;
+      document.getElementById('bigPriceLbl').textContent=fmtPHP(inst.id,prices[inst.id])+(changes[inst.id]>=0?' ▲ ':' ▼ ')+Math.abs(changes[inst.id]).toFixed(2)+'%';
+      buildPairRow(); buildBigChart();
+    };
+    wrap.appendChild(b);
+  });
+}
+
+function buildBigChart(){
+  const ctx=document.getElementById('bigChart');
+  if(!ctx) return;
+  if(bigChart) bigChart.destroy();
+  const h=hist[bigPair]||[];
+  bigChart=new Chart(ctx,{
+    type:'line',
+    data:{labels:h.map(()=>''),datasets:[{data:h,borderColor:'#d4ff3f',borderWidth:2,fill:true,
+      backgroundColor:c=>{const g=c.chart.ctx.createLinearGradient(0,0,0,240);g.addColorStop(0,'rgba(212,255,63,.1)');g.addColorStop(1,'rgba(212,255,63,0)');return g;},
+      pointRadius:0,tension:.35}]},
+    options:{responsive:true,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,backgroundColor:'#141414',borderColor:'#2a2a2a',borderWidth:1,bodyColor:'#f5f5f0',callbacks:{label:c2=>' '+fmtPHP(bigPair,c2.raw)}}},
+      scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{display:false}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#5a5a55',font:{size:10},callback:v=>fmtShort(v)}}}}
+  });
+}
+
+window.setRng=function(days,el){
+  bigRng=days;
+  document.querySelectorAll('.rng').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  buildBigChart();
+};
+
+// ── Boot ──
+buildTicker();
+buildGrid();
+buildHeroChart();
+buildPairRow();
+buildBigChart();
+
+onTick(id => {
+  if(id===null){ refreshAllCards(); updateTicker(null); }
+  else { updateCard(id); updateTicker(id); }
+});
+
+initPrices(() => {
+  buildTicker();
+  buildGrid();
+  updateHero();
+  buildBigChart();
+});
+</script>
+</body>
+</html>
