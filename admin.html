@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Heliance</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="loading-page" id="loadingPage">
+  <div style="text-align:center;">
+    <div class="logo" style="justify-content:center;margin-bottom:16px;"><span class="logo-mark"></span> Heliance Admin</div>
+    <div class="text-dim text-mono" style="font-size:12px;">Loading...</div>
+  </div>
+</div>
+
+<div class="dash-layout hidden" id="adminApp">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <a href="index.html" class="logo"><span class="logo-mark"></span> Heliance</a>
+      <div class="text-mono" style="font-size:10px;color:var(--accent);margin-top:6px;letter-spacing:0.15em;">ADMIN PANEL</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="sidebar-link active" data-tab="overview">Overview</a>
+      <a href="#" class="sidebar-link" data-tab="deposits">Deposits</a>
+      <a href="#" class="sidebar-link" data-tab="withdrawals">Withdrawals</a>
+      <a href="#" class="sidebar-link" data-tab="users">Users</a>
+      <a href="#" class="sidebar-link" data-tab="markets">Markets</a>
+      <a href="#" class="sidebar-link" data-tab="tickets">Support</a>
+    </nav>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleMenu()"></div>
+    <div class="sidebar-foot">
+      <div style="color:var(--text);margin-bottom:4px;font-weight:500;">Admin</div>
+      <div style="font-size:12px;">theheliance@gmail.com</div>
+      <button onclick="doSignOut()" class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px;">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <header class="dash-head">
+      <div>
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+        <h1>Admin Panel</h1>
+        <div class="welcome-sub">System control · live monitoring</div>
+      </div>
+    </header>
+
+    <div class="tab-content active" id="tab-overview">
+      <div class="metric-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+        <div class="metric accent">
+          <div class="metric-label">Active users</div>
+          <div class="metric-value" id="m-active-users">0</div>
+          <div class="metric-delta">Global community</div>
+        </div>
+        <div class="metric accent">
+          <div class="metric-label">Total Networth</div>
+          <div class="metric-value" id="m-top-networth">₱0</div>
+          <div class="metric-delta">Platform wide assets</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Active deposits</div>
+          <div class="metric-value" id="m-active-dep">0</div>
+          <div class="metric-delta" id="m-active-dep-amt">₱0 total</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Pending withdrawals</div>
+          <div class="metric-value" id="m-pending-wd">0</div>
+          <div class="metric-delta">Awaiting review</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Global metrics</div></div>
+        <div class="panel-body">
+          <div class="metric-grid" style="margin:0; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+            <div class="metric"><div class="metric-label">Total raised</div><div class="metric-value" id="g-raised">₱0</div></div>
+            <div class="metric"><div class="metric-label">Total networth</div><div class="metric-value" id="g-net">₱0</div></div>
+            <div class="metric"><div class="metric-label">Total users</div><div class="metric-value" id="g-users">0</div></div>
+            <div class="metric"><div class="metric-label">Active deposits</div><div class="metric-value" id="g-active">0</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-deposits">
+      <div class="tabs"><button class="tab active" data-status="pending">Pending</button><button class="tab" data-status="approved">Approved</button><button class="tab" data-status="rejected">Rejected</button><button class="tab" data-status="all">All</button></div>
+      <div class="panel" style="overflow-x: auto;">
+        <table style="min-width: 700px;">
+          <thead><tr><th>Date</th><th>User</th><th>Amount</th><th>Method</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="deposits-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-withdrawals">
+      <div class="tabs"><button class="tab active" data-status="pending">Pending</button><button class="tab" data-status="approved">Approved</button><button class="tab" data-status="rejected">Rejected</button><button class="tab" data-status="all">All</button></div>
+      <div class="panel" style="overflow-x: auto;">
+        <table style="min-width: 700px;">
+          <thead><tr><th>Date</th><th>User</th><th>Amount</th><th>Method</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="withdrawals-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-users">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">All users</div>
+          <input type="text" id="user-search" placeholder="Search..." class="search-input" style="width:200px;">
+        </div>
+        <div style="overflow-x: auto;"><table style="min-width: 800px;">
+          <thead><tr><th>Name</th><th>Email</th><th>Stake</th><th>Tier</th><th>Refs</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="users-table"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-tickets">
+      <div class="panel" style="overflow-x: auto;">
+        <table style="min-width: 600px;">
+          <thead><tr><th>Date</th><th>User</th><th>Subject</th><th>Actions</th></tr></thead>
+          <tbody id="tickets-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-markets">
+      <div class="tabs" style="margin-bottom:24px;">
+        <button class="tab active" id="mtab-active-btn" onclick="switchMarketTab('active')">Live & Capped</button>
+        <button class="tab" id="mtab-archive-btn" onclick="switchMarketTab('archive')">Archived</button>
+      </div>
+
+      <div id="mtab-active">
+        <div class="panel" style="margin-bottom:24px;">
+          <div class="panel-head"><div class="panel-title">➕ Create Market Item</div></div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;">
+              <div class="field"><label>Name</label><input type="text" id="ci-name" placeholder="e.g. Gold, Tesla, Bitcoin" class="search-input" style="width:100%;"></div>
+              <div class="field"><label>Badge</label><input type="text" id="ci-badge" placeholder="e.g. XAU, TSLA, BTC" class="search-input" style="width:100%;text-transform:uppercase;" maxlength="6"></div>
+              <div class="field"><label>Symbol</label><input type="text" id="ci-sym" placeholder="e.g. XAU/PHP" class="search-input" style="width:100%;"></div>
+              <div class="field"><label>Base Price (PHP)</label><input type="number" id="ci-base" placeholder="e.g. 135000" class="search-input" style="width:100%;"></div>
+              <div class="field"><label>Volatility</label><input type="number" id="ci-vol" placeholder="e.g. 0.015" class="search-input" style="width:100%;"></div>
+              <div class="field"><label>Pool Base Offset</label><input type="number" id="ci-pool" placeholder="e.g. 150" class="search-input" style="width:100%;"></div>
+              <div class="field">
+                <label>Pool Cap Target</label>
+                <select id="ci-captier" class="search-input" style="width:100%;">
+                  <option value="1000">1,000 users</option>
+                  <option value="800">800 users</option>
+                  <option value="600">600 users</option>
+                  <option value="400">400 users</option>
+                  <option value="200">200 users</option>
+                  <option value="100">100 users</option>
+                  <option value="50">50 users</option>
+                  <option value="20">20 users</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="createMarketItem()" id="createItemBtn" style="margin-top:14px;">Create Instrument</button>
+          </div>
+        </div>
+
+        <div class="panel" style="overflow-x: auto;">
+          <div class="panel-head">
+            <div class="panel-title">Active Market Items</div>
+            <span class="badge badge-active" id="mkt-items-count">0 active</span>
+          </div>
+          <table style="min-width: 800px;">
+            <thead>
+              <tr>
+                <th>Badge</th>
+                <th>Name</th>
+                <th>Symbol</th>
+                <th>Base Price</th>
+                <th>Pool Progress</th>
+                <th>Status</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="mkt-items-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="mtab-archive" class="hidden">
+        <div class="panel" style="overflow-x: auto;">
+          <div class="panel-head">
+            <div class="panel-title">Archived Items</div>
+            <span class="text-dim" style="font-size:13px;max-width:300px;text-align:right;">Archived items are hidden from the dashboard. Users can still cash out active stakes.</span>
+          </div>
+          <table style="min-width: 600px;">
+            <thead>
+              <tr>
+                <th>Badge</th>
+                <th>Name</th>
+                <th>Symbol</th>
+                <th>Status</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="mkt-archive-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="adminModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="adminModalTitle">Details</h3><button class="modal-close" onclick="closeModal('adminModal')">×</button></div>
+    <div class="modal-body" id="adminModalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { auth, db, onAuthStateChanged, signOut, ref, set, get, update, remove, onValue, push, TIERS, getTierForAmount, ADMIN_EMAIL } from './js/firebase-config.js';
+import { INSTR } from './js/prices.js';
+
+let allUsers = {}, allDeposits = {}, allWithdrawals = {}, allTickets = {}, allMarketItems = {}, allPeaked = {}, allInstCounts = {};
+let depositFilter = 'pending', withdrawFilter = 'pending';
+
+// FILLER OFFSETS
+const OFFSETS = { users: 650657, raised: 156958000, projects: 200, deposits: 109869000, networth: 285450000 };
+
+const fmt = (n) => '₱' + Number(n||0).toLocaleString('en-US', {maximumFractionDigits:0});
+const fmtNum = (n) => Number(n||0).toLocaleString('en-US');
+const fmtDate = (ts) => new Date(ts).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+const toast = (msg, type='') => { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show ' + type; setTimeout(() => t.className = 'toast', 3000); };
+
+window.toggleMenu = () => {
+  document.getElementById('sidebar').classList.toggle('open');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (backdrop) backdrop.classList.toggle('show');
+};
+
+window.showTab = name => {
+  document.querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));
+  document.querySelectorAll(`.sidebar-link[data-tab="${name}"]`).forEach(l=>l.classList.add('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  const targetTab = document.getElementById('tab-'+name);
+  if(targetTab) targetTab.classList.add('active');
+  
+  document.getElementById('sidebar').classList.remove('open');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (backdrop) backdrop.classList.remove('show');
+};
+window.doSignOut = async () => { await signOut(auth); window.location.href = 'login.html'; };
+window.closeModal = (id) => document.getElementById(id).classList.remove('active');
+
+// Navigation
+document.querySelectorAll('.sidebar-link').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+    link.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + link.dataset.tab).classList.add('active');
+    document.getElementById('sidebar').classList.remove('open');
+  });
+});
+
+document.querySelectorAll('#tab-deposits .tabs .tab').forEach(t => t.addEventListener('click', () => { 
+  document.querySelectorAll('#tab-deposits .tabs .tab').forEach(x => x.classList.remove('active')); 
+  t.classList.add('active'); depositFilter = t.dataset.status; renderDeposits(); 
+}));
+document.querySelectorAll('#tab-withdrawals .tabs .tab').forEach(t => t.addEventListener('click', () => { 
+  document.querySelectorAll('#tab-withdrawals .tabs .tab').forEach(x => x.classList.remove('active')); 
+  t.classList.add('active'); withdrawFilter = t.dataset.status; renderWithdrawals(); 
+}));
+
+document.getElementById('user-search').addEventListener('input', renderUsers);
+
+function renderUsers() {
+  const tbody = document.getElementById('users-table');
+  if(!tbody) return;
+
+  const query = (document.getElementById('user-search').value || '').toLowerCase();
+  
+  const usersArr = Object.entries(allUsers).filter(([uid, u]) => {
+    return u.role !== 'admin' && ((u.fullname||'').toLowerCase().includes(query) || (u.email||'').toLowerCase().includes(query));
+  });
+
+  tbody.innerHTML = usersArr.map(([uid, u]) => `
+    <tr>
+      <td>${u.fullname || '—'}</td>
+      <td>${u.email}</td>
+      <td>${fmt(u.activeStake)}</td>
+      <td>${u.currentTier ? u.currentTier + '×' : 'None'}</td>
+      <td>${u.referralCount || 0}</td>
+      <td><span class="badge ${u.suspended ? 'badge-rejected' : 'badge-active'}">${u.suspended ? 'Suspended' : 'Active'}</span></td>
+      <td>
+        <div class="flex gap-2">
+          ${u.suspended ? `<button class="btn btn-success btn-sm" onclick="unsuspendUser('${uid}')">Unban</button>` : `<button class="btn btn-danger btn-sm" onclick="suspendUser('${uid}')">Ban</button>`}
+          <button class="btn btn-danger btn-sm" onclick="deleteUser('${uid}', '${u.referralCode}')">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;" class="text-dim">No users found.</td></tr>';
+}
+window.switchMarketTab = function(tab) {
+  document.getElementById('mtab-active').classList.toggle('hidden', tab !== 'active');
+  document.getElementById('mtab-archive').classList.toggle('hidden', tab !== 'archive');
+  document.getElementById('mtab-active-btn').classList.toggle('active', tab === 'active');
+  document.getElementById('mtab-archive-btn').classList.toggle('active', tab === 'archive');
+};
+
+window.viewTicket = (key) => {
+  const t = allTickets[key]; if(!t) return;
+  document.getElementById('adminModalTitle').textContent = 'Support Ticket';
+  document.getElementById('adminModalBody').innerHTML = `
+    <div class="deposit-info"><div class="deposit-info-row"><span>From</span><span>${t.name}</span></div><div class="deposit-info-row"><span>Email</span><span>${t.email}</span></div></div>
+    <div style="font-weight:600;margin:12px 0 8px;">${t.subject}</div>
+    <div style="background:var(--bg);padding:14px;border-radius:6px;font-size:14px;white-space:pre-wrap;">${t.message}</div>
+    <a href="mailto:${t.email}?subject=Re: ${encodeURIComponent(t.subject)}" class="btn btn-primary btn-block" style="margin-top:16px;">Reply via Email</a>
+  `;
+  document.getElementById('adminModal').classList.add('active');
+};
+
+window.viewMarketItem = (key) => {
+  const item = allMarketItems[key] || INSTR.find(x => x.id === key); if(!item) return;
+  const cap = item.capTier || INST_DEFAULT_CAPS[key] || 1000;
+  document.getElementById('adminModalTitle').textContent = 'Market Item Details';
+  document.getElementById('adminModalBody').innerHTML = `
+    <div class="deposit-info">
+      <div class="deposit-info-row"><span>Name</span><span>${item.name || key}</span></div>
+      <div class="deposit-info-row"><span>Badge</span><span class="badge badge-active">${item.badge || key}</span></div>
+      <div class="deposit-info-row"><span>Symbol</span><span>${item.sym || '—'}</span></div>
+      <div class="deposit-info-row"><span>Base Price</span><span>₱${Number(item.base||0).toLocaleString()}</span></div>
+      <div class="deposit-info-row"><span>Volatility</span><span>${item.vol || 0.015}</span></div>
+      <div class="deposit-info-row"><span>Pool Cap Target</span><span style="color:var(--accent); font-weight:bold;">${cap.toLocaleString()} Users</span></div>
+    </div>
+  `;
+  document.getElementById('adminModal').classList.add('active');
+};
+
+window.viewReceipt = (id) => {
+  const d = allDeposits[id]; if(!d) return;
+  document.getElementById('adminModalTitle').textContent = 'Deposit Receipt';
+  document.getElementById('adminModalBody').innerHTML = `
+    <div class="deposit-info"><div class="deposit-info-row"><span>User</span><span>${d.userName}</span></div><div class="deposit-info-row"><span>Amount</span><span>${fmt(d.amount)}</span></div></div>
+    <img src="${d.receipt}" style="width:100%;border-radius:6px;margin-top:12px;">
+  `;
+  document.getElementById('adminModal').classList.add('active');
+};
+
+window.viewWithdrawal = (id) => {
+  const w = allWithdrawals[id]; if(!w) return;
+  document.getElementById('adminModalTitle').textContent = 'Withdrawal Details';
+  document.getElementById('adminModalBody').innerHTML = `
+    <div class="deposit-info"><div class="deposit-info-row"><span>User</span><span>${w.userName}</span></div><div class="deposit-info-row"><span>Amount</span><span style="color:var(--accent);">${fmt(w.amount)}</span></div><div class="deposit-info-row"><span>Method</span><span>${(w.method||'—').toUpperCase()}</span></div></div>
+    <div style="background:var(--bg);padding:14px;border-radius:6px;margin-top:12px;word-break:break-all;"><div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;">Account Details</div><div style="font-size:15px;margin-top:4px;">${w.account}</div><div style="color:var(--text-dim);font-size:13px;">${w.accountName}</div></div>
+  `;
+  document.getElementById('adminModal').classList.add('active');
+};
+
+function renderDeposits() {
+  let arr = Object.values(allDeposits); if (depositFilter !== 'all') arr = arr.filter(d => d.status === depositFilter);
+  arr.sort((a,b) => b.createdAt - a.createdAt);
+  document.getElementById('deposits-table').innerHTML = arr.length ? arr.map(d => `<tr><td>${fmtDate(d.createdAt)}</td><td>${d.userName}<br><small>${d.userEmail}</small></td><td>${fmt(d.amount)}</td><td>${d.method.toUpperCase()}</td><td><span class="badge ${d.status==='pending'?'badge-pending':d.status==='approved'?'badge-active':'badge-rejected'}">${d.status}</span></td><td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" onclick="viewReceipt('${d.id}')">View</button>${d.status==='pending'?`<button class="btn btn-success btn-sm" onclick="approveDeposit('${d.id}')">✓</button><button class="btn btn-danger btn-sm" onclick="rejectDeposit('${d.id}')">X</button>`:''}</div></td></tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:32px;">No deposits.</td></tr>';
+}
+
+function renderWithdrawals() {
+  let arr = Object.values(allWithdrawals); if (withdrawFilter !== 'all') arr = arr.filter(w => w.status === withdrawFilter);
+  arr.sort((a,b) => b.createdAt - a.createdAt);
+  document.getElementById('withdrawals-table').innerHTML = arr.length ? arr.map(w => `<tr><td>${fmtDate(w.createdAt)}</td><td>${w.userName}<br><small>${w.userEmail}</small></td><td>${fmt(w.amount)}</td><td>${(w.method||'').toUpperCase()}</td><td><span class="badge ${w.status==='pending'?'badge-pending':w.status==='approved'?'badge-active':'badge-rejected'}">${w.status}</span></td><td><div class="flex gap-2"><button class="btn btn-ghost btn-sm" onclick="viewWithdrawal('${w.id}')">Details</button>${w.status==='pending'?`<button class="btn btn-success btn-sm" onclick="approveWithdraw('${w.id}')">✓</button><button class="btn btn-danger btn-sm" onclick="rejectWithdraw('${w.id}')">X</button>`:''}</div></td></tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:32px;">No withdrawals.</td></tr>';
+}
+
+function renderTickets() {
+  const arr = Object.entries(allTickets).map(([k,v]) => ({...v, key:k})).sort((a,b) => b.createdAt - a.createdAt);
+  document.getElementById('tickets-table').innerHTML = arr.length ? arr.map(t => `<tr><td>${fmtDate(t.createdAt)}</td><td>${t.name}</td><td>${t.subject}</td><td><button class="btn btn-ghost btn-sm" onclick="viewTicket('${t.key}')">View</button></td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:32px;">No tickets.</td></tr>';
+}
+
+// ── SCALED PROPORTIONAL BASE OFFSETS ──
+const INST_DEFAULT_CAPS = {
+  'xrp':1000,'gbpusd':1000,'eurusd':1000,'ada':1000,'gold':1000,'bnb':1000,'googl':1000,
+  'silver':800,'usphp':800,'amzn':800, 'oil':600,'xpt':600,'nflx':600,
+  'sol':400,'amd':400,'meta':400, 'dow':200,'msft':200,'tsla':200,
+  'sp500':100,'nas100':100, 'eth':50,'aapl':50, 'btc':20,'nvda':20
+};
+
+const instBases = {
+  'gold': 320, 'silver': 210, 'sp500': 45, 'nas100': 60, 'dow': 90, 
+  'btc': 14, 'eth': 32, 'sol': 140, 'xrp': 220, 'bnb': 190, 
+  'ada': 195, 'oil': 110, 'xpt': 160, 'eurusd': 80, 'gbpusd': 140, 
+  'usphp': 250, 'aapl': 28, 'tsla': 115, 'nvda': 16, 'amd': 130, 
+  'msft': 150, 'amzn': 310, 'googl': 280, 'meta': 270, 'nflx': 180 
+};
+
+function renderMarketItems() {
+  const tbodyAct  = document.getElementById('mkt-items-table');
+  const tbodyArch = document.getElementById('mkt-archive-table');
+  if(!tbodyAct) return;
+
+  const masterList = [];
+  const handled = new Set();
+
+  INSTR.forEach(inst => {
+    const dbItem = allMarketItems[inst.id] || {};
+    const cap    = dbItem.capTier || INST_DEFAULT_CAPS[inst.id] || 1000;
+    masterList.push({
+      ...inst, ...dbItem,
+      isDefault: !inst.custom,
+      active: dbItem.active !== false,
+      capTier: cap,
+    });
+    handled.add(inst.id);
+  });
+  
+  Object.entries(allMarketItems).forEach(([key, item]) => {
+    if(!handled.has(key)) masterList.push({ ...item, isDefault:false });
+  });
+
+  const activeItems   = masterList.filter(x => x.active !== false);
+  const archivedItems = masterList.filter(x => x.active === false);
+
+  if(!activeItems.length) {
+    tbodyAct.innerHTML = '<tr><td colspan="7" class="text-dim" style="text-align:center;padding:28px;">No active items.</td></tr>';
+  } else {
+    tbodyAct.innerHTML = activeItems.map(item => {
+      const key    = item.id;
+      const peaked = allPeaked[key] || false;
+      const cap    = item.capTier || INST_DEFAULT_CAPS[key] || 1000;
+      const baseVal = item.poolBase !== undefined ? item.poolBase : (instBases[key] || 0);
+      const filled = (allInstCounts[key]||0) + baseVal;
+      const pct    = Math.min(100, Math.round((filled/cap)*100));
+
+      const statusBadge = peaked
+        ? '<span class="badge" style="background:rgba(251,191,36,.1);color:#fbbf24;font-size:10px;">CAPPED</span>'
+        : '<span class="badge badge-active" style="font-size:10px;">NOT YET REACHED</span>';
+
+      return `<tr>
+        <td><span class="badge badge-active">${item.badge||key}</span></td>
+        <td><strong>${item.name||key}</strong><br><span class="text-dim text-mono" style="font-size:10px;">${item.isDefault?'Default':'Custom'} · ${item.sym||'—'}</span></td>
+        <td class="text-mono">₱${Number(item.base||0).toLocaleString()}</td>
+        <td class="text-mono">${filled.toLocaleString()} / ${cap.toLocaleString()}<br><div style="font-size:10px;color:var(--accent);margin-top:2px;">${pct}% filled</div></td>
+        <td>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${statusBadge}
+            <button class="btn btn-ghost btn-sm" onclick="viewMarketItem('${key}')">View</button>
+          </div>
+        </td>
+        <td style="text-align:right;">
+          <div style="display:flex;gap:6px;justify-content:flex-end;">
+            <button class="btn btn-ghost btn-sm" onclick="resetInstCount('${key}')" title="Adjust or Reset Pool Progress">Reset</button>
+            <button class="btn btn-ghost btn-sm" onclick="archiveMarketItem('${key}')">Archive</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  if(tbodyArch) {
+    if(!archivedItems.length) {
+      tbodyArch.innerHTML = '<tr><td colspan="5" class="text-dim" style="text-align:center;padding:28px;">No archived items.</td></tr>';
+    } else {
+      tbodyArch.innerHTML = archivedItems.map(item => {
+        const key = item.id;
+        return `<tr>
+          <td><span class="badge badge-active">${item.badge||key}</span></td>
+          <td><strong>${item.name||key}</strong><br><span class="text-dim text-mono" style="font-size:10px;">${item.isDefault?'Default':'Custom'}</span></td>
+          <td><span class="text-mono" style="font-size:12px;">${item.sym||'—'}</span></td>
+          <td>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="badge badge-rejected" style="font-size:10px;">ARCHIVED</span>
+              <button class="btn btn-ghost btn-sm" onclick="viewMarketItem('${key}')">View</button>
+            </div>
+          </td>
+          <td style="text-align:right;">
+            <div style="display:flex;gap:6px;justify-content:flex-end;">
+              <button class="btn btn-success btn-sm" onclick="restoreMarketItem('${key}')">Restore</button>
+              ${!item.isDefault ? `<button class="btn btn-danger btn-sm" onclick="deleteMarketItem('${key}')">Delete</button>` : ''}
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  const el = document.getElementById('mkt-items-count');
+  if(el) el.textContent = activeItems.length + ' active';
+}
+
+window.archiveMarketItem = async function(key) {
+  if(!confirm('Archive this item? It will be hidden from users.\nExisting stakes remain — users can still cashout.')) return;
+  try {
+    const dbItem = allMarketItems[key] || {};
+    const defInst = INSTR.find(x => x.id === key) || {};
+    
+    // Safely reconstruct the object so Firebase does not crash from undefined values
+    const safeData = {
+      id: key,
+      active: false,
+      name: dbItem.name || defInst.name || key,
+      badge: dbItem.badge || defInst.badge || key.toUpperCase(),
+      sym: dbItem.sym || defInst.sym || '—',
+      base: dbItem.base !== undefined ? dbItem.base : (defInst.base || 1000),
+      vol: dbItem.vol !== undefined ? dbItem.vol : (defInst.vol || 0.015),
+      poolBase: dbItem.poolBase !== undefined ? dbItem.poolBase : (instBases[key] || 0),
+      capTier: dbItem.capTier !== undefined ? dbItem.capTier : (INST_DEFAULT_CAPS[key] || 1000),
+      createdAt: dbItem.createdAt || Date.now()
+    };
+    
+    // Delete any strictly undefined fields just in case
+    Object.keys(safeData).forEach(k => safeData[k] === undefined && delete safeData[k]);
+
+    await update(ref(db, 'marketItems/' + key), safeData);
+    toast('Moved to Archived tab.', 'success');
+  } catch(e) { 
+    console.error(e);
+    toast('Failed: ' + e.message, 'error'); 
+  }
+};
+
+window.restoreMarketItem = async function(key) {
+  try {
+    await update(ref(db, 'marketItems/' + key), { active: true });
+    toast('Restored to Live Markets.', 'success');
+  } catch(e) { toast('Failed: ' + e.message, 'error'); }
+};
+
+window.deleteMarketItem = async function(key) {
+  if(!confirm('Permanently delete this custom item? Existing stakers might lose references to it.')) return;
+  try {
+    await remove(ref(db, 'marketItems/' + key));
+    toast('Item permanently deleted.', 'success');
+  } catch(e) { toast('Failed: ' + e.message, 'error'); }
+};
+
+window.resetInstCount = async function(key) {
+  const name = INSTR.find(x=>x.id===key)?.name || allMarketItems[key]?.name || key;
+  const currentItem = allMarketItems[key] || {};
+  const currentBase = currentItem.poolBase !== undefined ? currentItem.poolBase : (instBases[key] || 0);
+
+  const newValStr = prompt(`Set new pool progress for "${name}":\n(Type the exact number of users you want the pool to drop to)`, currentBase);
+  if(newValStr === null) return; 
+  
+  const newVal = parseInt(newValStr);
+  if(isNaN(newVal) || newVal < 0) { toast('Invalid number.', 'error'); return; }
+
+  try {
+    await set(ref(db,'instCounts/'+key), 0);
+    await set(ref(db,'itemPeaked/'+key), null);
+
+    const inst = INSTR.find(x => x.id === key) || {};
+    
+    // Ensure item is fully pushed to database so it stays active
+    const safeData = {
+      id: key,
+      active: true,
+      name: currentItem.name || inst.name || key,
+      badge: currentItem.badge || inst.badge || key.toUpperCase(),
+      sym: currentItem.sym || inst.sym || '—',
+      base: currentItem.base !== undefined ? currentItem.base : (inst.base || 1000),
+      vol: currentItem.vol !== undefined ? currentItem.vol : (inst.vol || 0.015),
+      poolBase: newVal, // The specific typed number
+      capTier: currentItem.capTier !== undefined ? currentItem.capTier : (INST_DEFAULT_CAPS[key] || 1000),
+      createdAt: currentItem.createdAt || Date.now()
+    };
+    
+    Object.keys(safeData).forEach(k => safeData[k] === undefined && delete safeData[k]);
+
+    await update(ref(db, 'marketItems/' + key), safeData);
+    toast(`Pool for ${name} successfully set to ${newVal}.`, 'success');
+  } catch(e) { toast('Failed: '+e.message, 'error'); }
+};
+
+window.createMarketItem = async function() {
+  const name  = document.getElementById('ci-name').value.trim();
+  const badge = document.getElementById('ci-badge').value.trim().toUpperCase();
+  const sym   = document.getElementById('ci-sym').value.trim();
+  const base  = parseFloat(document.getElementById('ci-base').value)||0;
+  const vol   = parseFloat(document.getElementById('ci-vol').value)||0.012;
+  let pool  = parseInt(document.getElementById('ci-pool').value);
+  if (isNaN(pool)) pool = 100;
+  let capTier = parseInt(document.getElementById('ci-captier').value);
+  if (isNaN(capTier)) capTier = 1000;
+  const btn   = document.getElementById('createItemBtn');
+
+  if(!name || !badge || !sym || !base) { toast('Fill in all required fields.', 'error'); return; }
+  btn.innerHTML = '<span class="spinner"></span> Creating…'; btn.disabled = true;
+
+  try {
+    const key = badge.toLowerCase().replace(/[^a-z0-9]/g,'');
+    await set(ref(db, 'marketItems/' + key), {
+      id: key, name, badge, sym, base, vol, poolBase: pool, capTier: capTier, active: true, createdAt: Date.now()
+    });
+    await set(ref(db, 'instCounts/' + key), 0);
+    toast('✓ ' + name + ' created and live in Markets!', 'success');
+    ['ci-name','ci-badge','ci-sym','ci-base','ci-pool','ci-vol'].forEach(id => document.getElementById(id).value = '');
+  } catch(e) { toast('Failed: ' + e.message, 'error'); }
+  
+  btn.innerHTML = 'Create Instrument'; btn.disabled = false;
+};
+
+function renderTopMetrics() {
+  const users = Object.values(allUsers).filter(u => u.role !== 'admin');
+  const activeCount = users.filter(u => !u.suspended).length;
+  const approvedDep = Object.values(allDeposits).filter(d => d.status === 'approved');
+  let actualNet = 0; users.forEach(u => actualNet += (parseFloat(u.walletBalance)||0) + (parseFloat(u.activeStake)||0));
+
+  document.getElementById('m-active-users').textContent = fmtNum(activeCount + OFFSETS.users);
+  document.getElementById('m-top-networth').textContent = fmt(actualNet + OFFSETS.networth);
+  document.getElementById('m-active-dep').textContent = fmtNum(approvedDep.length + OFFSETS.deposits);
+  document.getElementById('m-active-dep-amt').textContent = fmt(approvedDep.reduce((s,d)=>s+parseFloat(d.amount),0) + OFFSETS.raised) + ' total';
+  document.getElementById('m-pending-wd').textContent = fmtNum(Object.values(allWithdrawals).filter(w=>w.status==='pending').length);
+}
+
+window.approveDeposit = async (id) => {
+  if (!confirm("Approve this deposit and credit the user's wallet?")) return;
+  const d = allDeposits[id]; if (!d) return;
+  try {
+    const walletSnap = await get(ref(db, 'users/' + d.uid + '/walletBalance'));
+    const freshWallet = Math.round(parseFloat(walletSnap.val() || 0));
+    const depositAmount = Math.round(parseFloat(d.amount || 0));
+    const newWallet = freshWallet + depositAmount;
+
+    const statsSnap = await get(ref(db, 'stats/global'));
+    const curRaised = Math.round(parseFloat((statsSnap.val()||{}).totalRaised||0));
+    const curDeps   = parseInt((statsSnap.val()||{}).activeDeposits||0);
+
+    const updates = {};
+    updates['users/' + d.uid + '/walletBalance'] = newWallet;
+    updates['deposits/' + id + '/status'] = 'approved';
+    updates['deposits/' + id + '/reviewedAt'] = Date.now();
+    updates['stats/global/totalRaised'] = curRaised + depositAmount;
+    updates['stats/global/activeDeposits'] = curDeps + 1;
+    await update(ref(db), updates);
+    toast('Approved! +₱' + depositAmount.toLocaleString(), 'success');
+  } catch (err) { toast('Failed: ' + err.message, 'error'); }
+};
+
+window.rejectDeposit = async (id) => {
+  if (!confirm('Reject this deposit?')) return;
+  await update(ref(db, 'deposits/' + id), { status: 'rejected', reviewedAt: Date.now() });
+  toast('Deposit rejected.', 'success');
+};
+
+window.approveWithdraw = async (id) => {
+  await update(ref(db, 'withdrawals/' + id), { status: 'approved', reviewedAt: Date.now() });
+  toast('Withdrawal approved — payment marked as sent.', 'success');
+};
+
+window.rejectWithdraw = async (id) => {
+  await update(ref(db, 'withdrawals/' + id), { status: 'rejected', reviewedAt: Date.now() });
+  toast('Withdrawal rejected.', 'success');
+};
+
+window.suspendUser = async (uid) => {
+  if (!confirm('Suspend this user account?')) return;
+  await update(ref(db, 'users/' + uid), { suspended: true });
+  toast('User suspended.', 'success');
+};
+
+window.unsuspendUser = async (uid) => {
+  await update(ref(db, 'users/' + uid), { suspended: false });
+  toast('User unsuspended.', 'success');
+};
+
+window.deleteUser = async (uid, refcode) => {
+  if (!confirm('Permanently delete this user account? This cannot be undone.')) return;
+  try {
+    await remove(ref(db, 'users/' + uid));
+    if (refcode) await remove(ref(db, 'referralIndex/' + refcode));
+    const statsSnap = await get(ref(db, 'stats/global'));
+    const stats = statsSnap.val() || {};
+    stats.totalUsers = Math.max(0, (stats.totalUsers || 1) - 1);
+    await set(ref(db, 'stats/global'), stats);
+    toast('User deleted.', 'success');
+  } catch (err) { toast('Failed to delete.', 'error'); }
+};
+
+onValue(ref(db, 'stats/global'), (snap) => {
+  const d = snap.val() || {};
+  document.getElementById('g-raised').textContent = fmt((d.totalRaised || 0) + OFFSETS.raised);
+  document.getElementById('g-net').textContent = fmt((d.totalNetworth || 0) + OFFSETS.networth);
+  document.getElementById('g-users').textContent = fmtNum((d.totalUsers || 0) + OFFSETS.users);
+  document.getElementById('g-active').textContent = fmtNum((d.activeDeposits || 0) + OFFSETS.deposits);
+});
+
+onValue(ref(db,'stats/global/projectsDone'), snap => {
+  const el = document.getElementById('adm-projects-done');
+  if(el) el.textContent = (parseInt(snap.val()||0) + OFFSETS.projects).toLocaleString();
+});
+
+onValue(ref(db, 'users'), snap => { allUsers = snap.val()||{}; renderUsers(); renderTopMetrics(); });
+onValue(ref(db, 'deposits'), snap => { allDeposits = snap.val()||{}; renderDeposits(); renderTopMetrics(); });
+onValue(ref(db, 'withdrawals'), snap => { allWithdrawals = snap.val()||{}; renderWithdrawals(); renderTopMetrics(); });
+onValue(ref(db, 'supportTickets'), snap => { allTickets = snap.val()||{}; renderTickets(); });
+onValue(ref(db, 'instCounts'), snap => { allInstCounts = snap.val()||{}; renderMarketItems(); });
+onValue(ref(db, 'marketItems'), snap => { allMarketItems = snap.val()||{}; renderMarketItems(); });
+onValue(ref(db, 'itemPeaked'), snap => { allPeaked = snap.val()||{}; renderMarketItems(); });
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user || user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    window.location.href = 'login.html';
+    return;
+  }
+  document.getElementById('loadingPage').classList.add('hidden');
+  document.getElementById('adminApp').classList.remove('hidden');
+});
+</script>
+</body>
+</html>

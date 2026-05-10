@@ -1,0 +1,30 @@
+{
+  "rules": {
+    "stats": {
+      "global": {
+        ".read": true,
+        ".write": true
+      }
+    },
+    "referralIndex": {
+      ".read": true,
+      ".write": true
+    },
+    "users": {
+      ".read": true,
+      ".write": true
+    },
+    "deposits": {
+      ".read": true,
+      ".write": true
+    },
+    "withdrawals": {
+      ".read": true,
+      ".write": true
+    },
+    "supportTickets": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
