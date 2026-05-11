@@ -809,41 +809,45 @@ window.rejectDeposit = async (id) => {
     const hasApproved = allUserDeps.some(x => x.status === 'approved');
 
     if (!hasApproved) {
-      // No approved deposits — this is a fake/bad account, delete everything
+      // No approved deposits — first deposit rejected, wipe the account
       const userSnap = await get(ref(db, 'users/' + d.uid));
-      const userData  = userSnap.val() || {};
+      const u = userSnap.val() || {};
 
-      // 1. Suspend so they can't log in
-      await update(ref(db, 'users/' + d.uid), { suspended: true, deletedReason: 'deposit_rejected' });
+      const wipeUpdates = {};
 
-      // 2. Remove referralIndex entry
-      if (userData.referralCode) await remove(ref(db, 'referralIndex/' + userData.referralCode));
+      // Suspend + mark reason (blocks login on dashboard & login page)
+      wipeUpdates['users/' + d.uid + '/suspended']     = true;
+      wipeUpdates['users/' + d.uid + '/deletedReason'] = 'deposit_rejected';
 
-      // 3. Undo referrer's referralCount increment (if any)
-      if (userData.referredBy) {
-        const refSnap = await get(ref(db, 'users/' + userData.referredBy));
+      // Undo referrer's referralCount increment
+      if (u.referredBy) {
+        const refSnap = await get(ref(db, 'users/' + u.referredBy));
         const refUser = refSnap.val() || {};
-        const newCount = Math.max(0, (refUser.referralCount || 1) - 1);
-        await update(ref(db, 'users/' + userData.referredBy), { referralCount: newCount });
+        wipeUpdates['users/' + u.referredBy + '/referralCount'] = Math.max(0, (refUser.referralCount || 1) - 1);
+        // Also clear pendingSignupBonus so ₱50 is never granted
+        wipeUpdates['users/' + d.uid + '/pendingSignupBonus'] = null;
       }
 
-      // 4. Delete user DB record, stakes, history
-      await remove(ref(db, 'users/' + d.uid));
-      await remove(ref(db, 'userStakes/' + d.uid));
-      await remove(ref(db, 'stakeHistory/' + d.uid));
+      // Mark deposit rejected
+      wipeUpdates['deposits/' + id + '/status']     = 'rejected';
+      wipeUpdates['deposits/' + id + '/reviewedAt'] = Date.now();
 
-      // 5. Decrement global user count
+      await update(ref(db), wipeUpdates);
+
+      // Remove referralIndex, stakes, history, decrement stats
+      if (u.referralCode) await remove(ref(db, 'referralIndex/' + u.referralCode));
+      await remove(ref(db, 'userStakes/'   + d.uid));
+      await remove(ref(db, 'stakeHistory/' + d.uid));
+      await remove(ref(db, 'users/'        + d.uid));
+
       const statsSnap = await get(ref(db, 'stats/global'));
       const stats = statsSnap.val() || {};
       stats.totalUsers = Math.max(0, (stats.totalUsers || 1) - 1);
       await set(ref(db, 'stats/global'), stats);
 
-      // 6. Mark deposit rejected
-      await update(ref(db, 'deposits/' + id), { status: 'rejected', reviewedAt: Date.now() });
-
-      toast('Deposit rejected — account deleted.', 'success');
+      toast('Deposit rejected — account removed.', 'success');
     } else {
-      // User has other approved deposits — just reject this one
+      // User already has approved deposits — just reject this one deposit
       await update(ref(db, 'deposits/' + id), { status: 'rejected', reviewedAt: Date.now() });
       toast('Deposit rejected.', 'success');
     }
