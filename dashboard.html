@@ -582,12 +582,11 @@ function renderUser(d){
   document.getElementById('m-wallet').textContent=fmtShort(d.walletBalance);
   document.getElementById('m-stake').textContent=fmtShort(d.activeStake); 
   
-  const refEarned = (d.referralCount || 0) * 50;
-  document.getElementById('m-ref').textContent = fmtShort(refEarned);
+  // Referral earnings: sum from actual stakeHistory referral entries (not referralCount * 50)
   document.getElementById('m-ref-sub').textContent=(d.referralCount||0)+' referrals';
   
   document.getElementById('ref-big').textContent=d.referralCount||0;
-  document.getElementById('ref-bonus').textContent = fmtShort(refEarned);
+  // ref-bonus and m-ref are updated by the stakeHistory listener below
   
   document.getElementById('ref-code').textContent=d.referralCode||'';
   document.getElementById('ref-code-2').textContent=d.referralCode||'';
@@ -975,6 +974,30 @@ window.confirmStake = async function() {
     toast('Staked ' + fmtShort(amt) + ' on ' + (INSTR.find(x => x.id === stakeTargetId)?.name) + '!', 'success');
     refreshAllCards();
 
+    // ── REFERRAL STAKE COMMISSION: 10% to referrer — runs after stake succeeds ──
+    if (userData.referredBy) {
+      try {
+        const referrerUid = userData.referredBy;
+        const bonus = Math.round(amt * 0.10);
+        if (bonus > 0) {
+          const refWalSnap = await get(ref(db, 'users/' + referrerUid + '/walletBalance'));
+          const refWallet  = parseFloat(refWalSnap.val() || 0);
+          const commUpdates = {};
+          commUpdates['users/' + referrerUid + '/walletBalance'] = refWallet + bonus;
+          // Write history to referralCommissions path — avoids stakeHistory $uid rule
+          const ck = push(child(ref(db), 'referralCommissions/' + referrerUid)).key;
+          commUpdates['referralCommissions/' + referrerUid + '/' + ck] = {
+            type: 'referral', amount: bonus,
+            note: '10% stake commission from ' + (userData.fullname || 'a user') + ' — staked ' + fmtShort(amt),
+            ts: Date.now()
+          };
+          await update(ref(db), commUpdates);
+        }
+      } catch(refErr) {
+        console.warn('Referral commission failed:', refErr);
+      }
+    }
+
   } catch (e) {
     console.error(e);
     al.innerHTML = `<div class="alert alert-error">Failed: ${e.message}</div>`;
@@ -1169,34 +1192,16 @@ document.getElementById('dep-amount').addEventListener('input', e => {
 });
 
 document.getElementById('receipt').addEventListener('change', e => {
-  const file = e.target.files[0];
+  const file = e.target.files[0]; 
   if(!file) return;
-  if(file.size > 20*1024*1024){ toast('File too large. Max 20 MB.','error'); return; }
-
+  if(file.size > 5*1024*1024){ toast('Max 5 MB','error'); return; }
+  
   const r = new FileReader();
   r.onload = ev => {
-    // Compress image via canvas before storing — fixes Mac/Safari HEIC large files
-    const img = new Image();
-    img.onload = () => {
-      const MAX = 1000; // max width/height px
-      let w = img.width, h = img.height;
-      if(w > MAX || h > MAX) {
-        const ratio = Math.min(MAX/w, MAX/h);
-        w = Math.round(w * ratio);
-        h = Math.round(h * ratio);
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      receiptDataUrl = canvas.toDataURL('image/jpeg', 0.75); // ~75% quality JPEG
-      document.getElementById('upload-prompt').innerHTML =
-        `<img src="${receiptDataUrl}" style="max-width:100%;max-height:170px;border-radius:6px;object-fit:contain;">
-         <div style="margin-top:9px;color:var(--green);font-size:13px;">✓ ${file.name}</div>`;
-      document.getElementById('upload-area').classList.add('has-file');
-    };
-    img.src = ev.target.result;
+    receiptDataUrl = ev.target.result;
+    document.getElementById('upload-prompt').innerHTML = `<img src="${receiptDataUrl}" style="max-width:100%;max-height:170px;border-radius:6px;object-fit:contain;"><div style="margin-top:9px;color:var(--green);font-size:13px;">✓ ${file.name}</div>`;
+    document.getElementById('upload-area').classList.add('has-file');
   };
-  r.onerror = () => toast('Failed to read file. Try a different image.', 'error');
   r.readAsDataURL(file);
 });
 
@@ -1437,40 +1442,104 @@ onAuthStateChanged(auth, async user => {
     }
   });
 
-  onValue(ref(db,'stakeHistory/'+user.uid), snap=>{
-    const data = snap.val() || {};
-    let rows = Object.values(data).sort((a,b) => b.ts - a.ts);
+  // ── referralCommissions listener: notification only, no history merge ──
+  let commInitDone = false;
+  onValue(ref(db,'referralCommissions/'+user.uid), commSnap => {
+    const commRows = Object.values(commSnap.val() || {});
+    window._refCommRows  = commRows;
+    window._refCommTotal = commRows.reduce((s,r) => s + (parseFloat(r.amount)||0), 0);
 
-    // Count referral entries newer than last seen timestamp
+    // Earnings display
+    const total = (window._stakeRefTotal||0) + (window._refCommTotal||0);
+    const refEarnEl  = document.getElementById('m-ref');
+    const refBonusEl = document.getElementById('ref-bonus');
+    if(refEarnEl)  refEarnEl.textContent  = fmtShort(total);
+    if(refBonusEl) refBonusEl.textContent = fmtShort(total);
+
+    // Notification dot
     const lastSeenTs = parseInt(localStorage.getItem(SEEN_KEY) || '0');
-    const newRefs = rows.filter(r => r.type === 'referral' && r.ts > lastSeenTs);
-
-    if(initDone && newRefs.length > 0) {
-      toast('🎉 New referral! +₱50 added to your wallet.', 'success');
+    const newComms = commRows.filter(r => r.ts > lastSeenTs);
+    if(commInitDone && newComms.length > 0) {
+      const latest = newComms.sort((a,b)=>b.ts-a.ts)[0];
+      toast('💰 Stake commission! +' + fmtShort(latest.amount) + (latest.note ? ' — ' + latest.note : ''), 'success');
     }
-    initDone = true;
+    commInitDone = true;
 
-    // If user is currently viewing referrals/history — auto-clear
     const activeTab = document.querySelector('.tab-content.active')?.id;
     if(activeTab === 'tab-referrals' || activeTab === 'tab-history') {
       clearRefNotif();
     } else {
-      updateNotifDots(newRefs.length);
+      // Combine with signup bonus unseen count
+      const stakeLastSeen = parseInt(localStorage.getItem(SEEN_KEY) || '0');
+      const histNewRefs = (window._stakeHistRows||[]).filter(r => r.type==='referral' && r.ts > stakeLastSeen);
+      updateNotifDots(newComms.length + histNewRefs.length);
+    }
+  });
+
+  onValue(ref(db,'stakeHistory/'+user.uid), snap=>{
+    const data = snap.val() || {};
+    window._stakeHistRows = Object.values(data);
+    window._stakeRefTotal = window._stakeHistRows
+      .filter(r => r.type==='referral')
+      .reduce((s,r) => s + (parseFloat(r.amount)||0), 0);
+
+    // Earnings display
+    const total = (window._stakeRefTotal||0) + (window._refCommTotal||0);
+    const refEarnEl  = document.getElementById('m-ref');
+    const refBonusEl = document.getElementById('ref-bonus');
+    if(refEarnEl)  refEarnEl.textContent  = fmtShort(total);
+    if(refBonusEl) refBonusEl.textContent = fmtShort(total);
+
+    const lastSeenTs = parseInt(localStorage.getItem(SEEN_KEY) || '0');
+    let rows = window._stakeHistRows.sort((a,b) => b.ts - a.ts);
+    const newRefs = rows.filter(r => r.type==='referral' && r.ts > lastSeenTs);
+
+    if(initDone && newRefs.length > 0) {
+      const latest = newRefs[0];
+      toast('🎉 Referral signup bonus! +' + fmtShort(latest.amount) + ' added to your wallet.', 'success');
+    }
+    initDone = true;
+
+    const activeTab = document.querySelector('.tab-content.active')?.id;
+    if(activeTab === 'tab-referrals' || activeTab === 'tab-history') {
+      clearRefNotif();
+    } else {
+      const commLastSeen = parseInt(localStorage.getItem(SEEN_KEY) || '0');
+      const newComms = (window._refCommRows||[]).filter(r => r.ts > commLastSeen);
+      updateNotifDots(newRefs.length + newComms.length);
     }
 
-    const histEl = document.getElementById('hist-rows');
-    if(histEl) histEl.innerHTML = rows.length ? rows.map(r => {
-      const typeLabel = r.type==='stake' ? 'Stake' : r.type==='cashout' ? 'Cashout' : r.type==='withdraw' ? 'Withdrawal' : r.type==='referral' ? 'Referral Bonus' : r.type;
+    // Merge referralCommissions into display rows (read-only, no data change)
+    const commDisplay = (window._refCommRows || []).map(r => ({...r, _isComm: true}));
+    const allDisplay  = [...rows, ...commDisplay].sort((a,b) => b.ts - a.ts);
+
+    function renderRow(r) {
+      const isRefSignup = r.type==='referral' && (r.note||'').toLowerCase().includes('signup');
+      const isRefComm   = r._isComm || ((r.note||'').toLowerCase().includes('commission') || (r.note||'').toLowerCase().includes('stake bonus'));
+      const typeLabel   = r.type==='stake'    ? 'Stake'
+                        : r.type==='cashout'  ? 'Cashout'
+                        : r.type==='withdraw' ? 'Withdrawal'
+                        : isRefSignup         ? 'Referral · Signup Bonus'
+                        : isRefComm           ? 'Referral · Stake Commission'
+                        : r.type==='referral' ? 'Referral Bonus'
+                        : r.type;
       const amtLabel  = r.type==='cashout' ? fmtShort(r.payout) : fmtShort(r.amount);
       const badge2    = r.type==='cashout' || r.type==='referral' ? 'badge-active' : r.type==='withdraw' ? 'badge-rejected' : 'badge-pending';
       const isNew     = r.type==='referral' && r.ts > lastSeenTs;
+      const refPill   = r.type==='referral' ? ` <span style="font-size:9px;background:rgba(212,255,63,.15);color:var(--accent);border-radius:3px;padding:1px 5px;margin-left:4px;font-family:var(--mono);">+${fmtShort(r.amount)}</span>` : '';
+      const refNote   = r.note ? `<div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${r.note}</div>` : '';
       return `<tr style="${r.type==='referral' ? 'background:rgba(212,255,63,.05);' : ''}">
         <td style="white-space:nowrap;">${fmtD(r.ts||Date.now())}${isNew ? ' <span style="font-size:9px;background:var(--accent);color:#0a0a0a;border-radius:3px;padding:1px 5px;font-family:var(--mono);font-weight:700;">NEW</span>' : ''}</td>
-        <td>${typeLabel}${r.instrument ? ' · ' + r.instrument : ''}${r.type==='referral' ? ' <span style="font-size:9px;background:rgba(212,255,63,.15);color:var(--accent);border-radius:3px;padding:1px 5px;margin-left:4px;font-family:var(--mono);">+₱50</span>' : ''}</td>
+        <td>${typeLabel}${r.instrument ? ' · ' + r.instrument : ''}${refPill}${refNote}</td>
         <td style="${r.type==='referral' ? 'color:var(--accent);font-weight:600;' : ''}">${amtLabel}</td>
         <td><span class="badge ${badge2}">${r.type==='referral' ? 'bonus' : r.type}</span></td>
       </tr>`;
-    }).join('') : '<tr><td colspan="4" class="text-dim" style="text-align:center;padding:22px;">No activity yet.</td></tr>';
+    }
+
+    const histEl = document.getElementById('hist-rows');
+    if(histEl) histEl.innerHTML = allDisplay.length
+      ? allDisplay.map(renderRow).join('')
+      : '<tr><td colspan="4" class="text-dim" style="text-align:center;padding:22px;">No activity yet.</td></tr>';
   });
 
   const sp = new URLSearchParams(window.location.search).get('stake');
