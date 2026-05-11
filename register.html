@@ -215,7 +215,8 @@ import {
 
 let createdUid     = null;
 let createdEmail   = null;
-let createdName    = null; 
+let createdName    = null;
+let pendingData    = null; // holds step1 data until deposit submitted
 let selectedMethod = null;
 let receiptDataUrl = null;
 
@@ -301,7 +302,7 @@ window.goStep2 = async function () {
     showAlert('Please agree to the Terms of Service to continue.'); return;
   }
 
-  btn.innerHTML = '<span class="spinner"></span> Creating account…';
+  btn.innerHTML = '<span class="spinner"></span> Checking…';
   btn.disabled  = true;
 
   try {
@@ -316,68 +317,17 @@ window.goStep2 = async function () {
       }
     }
 
-    const cred   = await createUserWithEmailAndPassword(auth, email, password);
-    const uid    = cred.user.uid;
-    const myCode = 'HEL-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-    
-    createdUid   = uid;
+    // ── Store in memory only — account created on deposit submit ──
+    pendingData = { fullname, email, phone, password, refInput, referrerUid };
     createdEmail = email;
     createdName  = fullname;
-    
-    let userRole = 'user';
-    if (typeof ADMIN_EMAIL === 'string' && email === ADMIN_EMAIL.toLowerCase()) {
-        userRole = 'admin';
-    }
 
-    // CREATE THE NEW USER DATA FIRST (This will always succeed)
-    await set(ref(db, `users/${uid}`), {
-      uid,
-      fullname,
-      email,
-      phone:             phone || "",
-      role:              userRole,
-      referralCode:      myCode,
-      referredBy:        referrerUid || "",
-      referralCount:     0,
-      walletBalance:     0,
-      activeStake:       0,
-      currentTier:       "",
-      currentMultiplier: 0,
-      networth:          0,
-      suspended:         false,
-      createdAt:         Date.now()
-    });
-
-    await set(ref(db, `referralIndex/${myCode}`), uid);
-
-    // ── REFERRAL: ₱50 only fires when admin APPROVES new user's first deposit ──
-    if (referrerUid) {
-      try {
-        const rSnap = await get(ref(db, `users/${referrerUid}`));
-        const rUser = rSnap.val() || {};
-        await update(ref(db, `users/${referrerUid}`), {
-          referralCount: (rUser.referralCount || 0) + 1
-        });
-        await update(ref(db, `users/${uid}`), {
-          pendingSignupBonus: true
-        });
-      } catch (refError) {
-        console.warn("Referral tracking failed. Registration continuing normally.", refError);
-      }
-    }
-
-    const gSnap = await get(ref(db, 'stats/global'));
-    const g = gSnap.val() || { totalUsers:0, totalRaised:0, totalNetworth:0, activeDeposits:0 };
-    g.totalUsers = (g.totalUsers || 0) + 1;
-    await set(ref(db, 'stats/global'), g);
-
-    document.getElementById('newRefCode').textContent = myCode;
     setStep(2);
 
   } catch (err) {
-    console.error("Firebase Registration Error:", err);
-    let msg = 'Registration failed: ' + (err.message || 'Unknown error');
-    if (err.code === 'auth/email-already-in-use') msg = 'An account with this email already exists.';
+    console.error("Step 1 Error:", err);
+    let msg = 'Something went wrong: ' + (err.message || 'Unknown error');
+    if (err.code === 'auth/email-already-in-use') msg = 'An account with this email already exists. Please sign in.';
     if (err.code === 'auth/weak-password')         msg = 'Password too weak (min 6 chars).';
     if (err.code === 'auth/invalid-email')          msg = 'Invalid email address.';
     showAlert(msg);
@@ -441,17 +391,67 @@ window.submitDeposit = async function () {
   if (!amount || amount < 500) { showAlert('Minimum deposit is ₱500.'); return; }
   if (!selectedMethod)         { showAlert('Please choose a payment method.'); return; }
   if (!receiptDataUrl)         { showAlert('Please upload your payment receipt.'); return; }
+  if (!pendingData)            { showAlert('Session expired. Please go back to step 1.'); return; }
 
-  btn.innerHTML = '<span class="spinner"></span> Submitting…';
+  btn.innerHTML = '<span class="spinner"></span> Creating account…';
   btn.disabled  = true;
 
   try {
+    const { fullname, email, phone, password, refInput, referrerUid } = pendingData;
+
+    // ── CREATE Firebase Auth account now ──
+    const cred   = await createUserWithEmailAndPassword(auth, email, password);
+    const uid    = cred.user.uid;
+    const myCode = 'HEL-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    createdUid   = uid;
+
+    // ── CREATE user DB record ──
+    await set(ref(db, `users/${uid}`), {
+      uid, fullname, email,
+      phone:             phone || "",
+      role:              'user',
+      referralCode:      myCode,
+      referredBy:        referrerUid || "",
+      referralCount:     0,
+      walletBalance:     0,
+      activeStake:       0,
+      currentTier:       "",
+      currentMultiplier: 0,
+      networth:          0,
+      suspended:         false,
+      createdAt:         Date.now()
+    });
+
+    await set(ref(db, `referralIndex/${myCode}`), uid);
+
+    // ── REFERRAL tracking ──
+    if (referrerUid) {
+      try {
+        const rSnap = await get(ref(db, `users/${referrerUid}`));
+        const rUser = rSnap.val() || {};
+        await update(ref(db, `users/${referrerUid}`), {
+          referralCount: (rUser.referralCount || 0) + 1
+        });
+        await update(ref(db, `users/${uid}`), { pendingSignupBonus: true });
+      } catch (refError) {
+        console.warn("Referral tracking failed.", refError);
+      }
+    }
+
+    // ── UPDATE global stats ──
+    const gSnap = await get(ref(db, 'stats/global'));
+    const g = gSnap.val() || { totalUsers:0, totalRaised:0, totalNetworth:0, activeDeposits:0 };
+    g.totalUsers = (g.totalUsers || 0) + 1;
+    await set(ref(db, 'stats/global'), g);
+
+    // ── SUBMIT deposit ──
+    btn.innerHTML = '<span class="spinner"></span> Submitting deposit…';
     const depRef = push(ref(db, 'deposits'));
     await set(depRef, {
       id:        depRef.key,
-      uid:       createdUid,
-      userName:  createdName, 
-      userEmail: createdEmail,
+      uid,
+      userName:  fullname,
+      userEmail: email,
       amount,
       method:    selectedMethod,
       receipt:   receiptDataUrl,
@@ -459,25 +459,27 @@ window.submitDeposit = async function () {
       createdAt: Date.now()
     });
 
+    document.getElementById('newRefCode').textContent = myCode;
     document.getElementById('depStatus').innerHTML = `
       <div class="alert alert-info" style="background:rgba(212,255,63,0.06);border-color:rgba(212,255,63,0.2);color:var(--accent);margin-top:16px;">
         Deposit of <strong>${'₱' + amount.toLocaleString('en-US',{minimumFractionDigits:2})}</strong> submitted via
         <strong>${selectedMethod.toUpperCase()}</strong> — pending admin review.
       </div>`;
 
+    pendingData = null; // clear memory
     setStep(3);
+
   } catch (err) {
-    console.error("Deposit Error:", err);
-    showAlert('Failed to submit deposit. Please try again from your dashboard.');
+    console.error("Registration/Deposit Error:", err);
+    let msg = 'Failed: ' + (err.message || 'Unknown error');
+    if (err.code === 'auth/email-already-in-use') msg = 'An account with this email already exists. Please sign in.';
+    showAlert(msg);
     btn.innerHTML = 'Submit deposit & finish →';
     btn.disabled  = false;
   }
 };
 
-window.skipDeposit = function () {
-  document.getElementById('depStatus').innerHTML = '';
-  setStep(3);
-};
+
 
 window.copyRef = async function () {
   const code = document.getElementById('newRefCode').textContent;
