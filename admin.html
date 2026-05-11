@@ -746,6 +746,55 @@ window.approveDeposit = async (id) => {
     updates['stats/global/totalRaised'] = curRaised + depositAmount;
     updates['stats/global/activeDeposits'] = curDeps + 1;
     await update(ref(db), updates);
+
+    // ── REFERRAL SIGNUP BONUS: ₱50 to referrer on new user's FIRST approved deposit ──
+    // ── + process any pending stake commissions in referralQueue for this user's referrer ──
+    try {
+      const newUserSnap = await get(ref(db, 'users/' + d.uid));
+      const newUser = newUserSnap.val() || {};
+      const referrerUid = newUser.referredBy || null;
+
+      if (referrerUid) {
+        const refSnap   = await get(ref(db, 'users/' + referrerUid));
+        const refUser   = refSnap.val() || {};
+        let   refWallet = parseFloat(refUser.walletBalance) || 0;
+        const refUpdates = {};
+
+        // ── 1. Signup ₱50 bonus (first deposit only) ──
+        if (newUser.pendingSignupBonus) {
+          refWallet += 50;
+          refUpdates['users/' + d.uid + '/pendingSignupBonus'] = null;
+          const hk = push(ref(db, 'stakeHistory/' + referrerUid)).key;
+          refUpdates['stakeHistory/' + referrerUid + '/' + hk] = {
+            type: 'referral', amount: 50,
+            note: 'Signup bonus — ' + (newUser.fullname || newUser.email || 'a user') + ' made first deposit',
+            ts: Date.now()
+          };
+        }
+
+        // ── 2. Process any pending stake commissions from referralQueue ──
+        const qSnap = await get(ref(db, 'referralQueue'));
+        const queue = qSnap.val() || {};
+        Object.entries(queue).forEach(([key, entry]) => {
+          if (entry.referrerUid === referrerUid && entry.fromUid === d.uid && entry.status === 'pending') {
+            refWallet += entry.amount;
+            refUpdates['referralQueue/' + key + '/status'] = 'paid';
+            const hk2 = push(ref(db, 'stakeHistory/' + referrerUid)).key;
+            refUpdates['stakeHistory/' + referrerUid + '/' + hk2] = {
+              type: 'referral', amount: entry.amount,
+              note: '10% stake commission from ' + entry.fromName + ' — staked ' + fmt(entry.stakeAmt),
+              ts: Date.now()
+            };
+          }
+        });
+
+        if (Object.keys(refUpdates).length > 0) {
+          refUpdates['users/' + referrerUid + '/walletBalance'] = refWallet;
+          await update(ref(db), refUpdates);
+        }
+      }
+    } catch(refErr) { console.warn('Referral bonus processing failed:', refErr); }
+
     toast('Approved! +₱' + depositAmount.toLocaleString(), 'success');
   } catch (err) { toast('Failed: ' + err.message, 'error'); }
 };
