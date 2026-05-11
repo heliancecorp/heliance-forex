@@ -800,9 +800,57 @@ window.approveDeposit = async (id) => {
 };
 
 window.rejectDeposit = async (id) => {
-  if (!confirm('Reject this deposit?')) return;
-  await update(ref(db, 'deposits/' + id), { status: 'rejected', reviewedAt: Date.now() });
-  toast('Deposit rejected.', 'success');
+  const d = allDeposits[id]; if (!d) return;
+  if (!confirm('Reject this deposit?\n\nIf this is the user\'s ONLY deposit, their account will be deleted entirely.')) return;
+
+  try {
+    // Check if user has any other approved deposits
+    const allUserDeps = Object.values(allDeposits).filter(x => x.uid === d.uid);
+    const hasApproved = allUserDeps.some(x => x.status === 'approved');
+
+    if (!hasApproved) {
+      // No approved deposits — this is a fake/bad account, delete everything
+      const userSnap = await get(ref(db, 'users/' + d.uid));
+      const userData  = userSnap.val() || {};
+
+      // 1. Suspend so they can't log in
+      await update(ref(db, 'users/' + d.uid), { suspended: true, deletedReason: 'deposit_rejected' });
+
+      // 2. Remove referralIndex entry
+      if (userData.referralCode) await remove(ref(db, 'referralIndex/' + userData.referralCode));
+
+      // 3. Undo referrer's referralCount increment (if any)
+      if (userData.referredBy) {
+        const refSnap = await get(ref(db, 'users/' + userData.referredBy));
+        const refUser = refSnap.val() || {};
+        const newCount = Math.max(0, (refUser.referralCount || 1) - 1);
+        await update(ref(db, 'users/' + userData.referredBy), { referralCount: newCount });
+      }
+
+      // 4. Delete user DB record, stakes, history
+      await remove(ref(db, 'users/' + d.uid));
+      await remove(ref(db, 'userStakes/' + d.uid));
+      await remove(ref(db, 'stakeHistory/' + d.uid));
+
+      // 5. Decrement global user count
+      const statsSnap = await get(ref(db, 'stats/global'));
+      const stats = statsSnap.val() || {};
+      stats.totalUsers = Math.max(0, (stats.totalUsers || 1) - 1);
+      await set(ref(db, 'stats/global'), stats);
+
+      // 6. Mark deposit rejected
+      await update(ref(db, 'deposits/' + id), { status: 'rejected', reviewedAt: Date.now() });
+
+      toast('Deposit rejected — account deleted.', 'success');
+    } else {
+      // User has other approved deposits — just reject this one
+      await update(ref(db, 'deposits/' + id), { status: 'rejected', reviewedAt: Date.now() });
+      toast('Deposit rejected.', 'success');
+    }
+  } catch(err) {
+    console.error(err);
+    toast('Failed: ' + err.message, 'error');
+  }
 };
 
 window.approveWithdraw = async (id) => {
