@@ -173,9 +173,7 @@
           </button>
         </div>
 
-        <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="skipDeposit()">
-          Skip for now — deposit later from dashboard
-        </button>
+
       </div>
 
       <div id="step3" class="hidden">
@@ -352,27 +350,19 @@ window.goStep2 = async function () {
 
     await set(ref(db, `referralIndex/${myCode}`), uid);
 
-    // 🔥 ISOLATED THE REFERRAL REWARD SO IT WON'T CRASH THE REGISTRATION
+    // ── REFERRAL: ₱50 only fires when admin APPROVES new user's first deposit ──
     if (referrerUid) {
       try {
         const rSnap = await get(ref(db, `users/${referrerUid}`));
         const rUser = rSnap.val() || {};
-        const newRefCount = (rUser.referralCount || 0) + 1;
-        const newWallet = (parseFloat(rUser.walletBalance) || 0) + 50;
-
         await update(ref(db, `users/${referrerUid}`), {
-          referralCount: newRefCount,
-          walletBalance: newWallet
+          referralCount: (rUser.referralCount || 0) + 1
         });
-
-        const hk = push(ref(db, `stakeHistory/${referrerUid}`)).key;
-        await set(ref(db, `stakeHistory/${referrerUid}/${hk}`), {
-          type: 'referral',
-          amount: 50,
-          ts: Date.now()
+        await update(ref(db, `users/${uid}`), {
+          pendingSignupBonus: true
         });
       } catch (refError) {
-        console.warn("Referral reward blocked by Firebase rules. Registration continuing normally.", refError);
+        console.warn("Referral tracking failed. Registration continuing normally.", refError);
       }
     }
 
@@ -430,34 +420,17 @@ window.pickMethod = function(m) {
 window.previewReceipt = function(e) {
   const file = e.target.files[0];
   if (!file) return;
-  if (file.size > 20 * 1024 * 1024) {
-    showAlert('File too large. Max 20 MB.'); return;
+  if (file.size > 5 * 1024 * 1024) {
+    showAlert('File too large. Max 5 MB.'); return;
   }
   const reader = new FileReader();
   reader.onload = ev => {
-    // Compress via canvas — fixes Mac/Safari HEIC large file silent failures
-    const img = new Image();
-    img.onload = () => {
-      const MAX = 1000;
-      let w = img.width, h = img.height;
-      if(w > MAX || h > MAX) {
-        const ratio = Math.min(MAX/w, MAX/h);
-        w = Math.round(w * ratio);
-        h = Math.round(h * ratio);
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      receiptDataUrl = canvas.toDataURL('image/jpeg', 0.75);
-      const zone = document.getElementById('uploadZone');
-      document.getElementById('uploadPrompt').innerHTML =
-        `<img src="${receiptDataUrl}" class="preview"><div style="margin-top:10px;color:var(--green);font-size:13px;">✓ ${file.name}</div>`;
-      zone.classList.add('has-file');
-    };
-    img.onerror = () => showAlert('Failed to read image. Try a different file.');
-    img.src = ev.target.result;
+    receiptDataUrl = ev.target.result;
+    const zone = document.getElementById('uploadZone');
+    document.getElementById('uploadPrompt').innerHTML =
+      `<img src="${receiptDataUrl}" class="preview"><div style="margin-top:10px;color:var(--green);font-size:13px;">✓ ${file.name}</div>`;
+    zone.classList.add('has-file');
   };
-  reader.onerror = () => showAlert('Failed to read file. Try a different image.');
   reader.readAsDataURL(file);
 };
 
