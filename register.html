@@ -430,17 +430,34 @@ window.pickMethod = function(m) {
 window.previewReceipt = function(e) {
   const file = e.target.files[0];
   if (!file) return;
-  if (file.size > 5 * 1024 * 1024) {
-    showAlert('File too large. Max 5 MB.'); return;
+  if (file.size > 20 * 1024 * 1024) {
+    showAlert('File too large. Max 20 MB.'); return;
   }
   const reader = new FileReader();
   reader.onload = ev => {
-    receiptDataUrl = ev.target.result;
-    const zone = document.getElementById('uploadZone');
-    document.getElementById('uploadPrompt').innerHTML =
-      `<img src="${receiptDataUrl}" class="preview"><div style="margin-top:10px;color:var(--green);font-size:13px;">✓ ${file.name}</div>`;
-    zone.classList.add('has-file');
+    // Compress via canvas — fixes Mac/Safari HEIC large file silent failures
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1000;
+      let w = img.width, h = img.height;
+      if(w > MAX || h > MAX) {
+        const ratio = Math.min(MAX/w, MAX/h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      receiptDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      const zone = document.getElementById('uploadZone');
+      document.getElementById('uploadPrompt').innerHTML =
+        `<img src="${receiptDataUrl}" class="preview"><div style="margin-top:10px;color:var(--green);font-size:13px;">✓ ${file.name}</div>`;
+      zone.classList.add('has-file');
+    };
+    img.onerror = () => showAlert('Failed to read image. Try a different file.');
+    img.src = ev.target.result;
   };
+  reader.onerror = () => showAlert('Failed to read file. Try a different image.');
   reader.readAsDataURL(file);
 };
 
