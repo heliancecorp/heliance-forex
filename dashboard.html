@@ -1387,7 +1387,16 @@ onAuthStateChanged(auth, async user => {
   onValue(ref(db, 'users/' + user.uid), snap => {
     const d = snap.val();
     if (!d) return;
-    if (d.suspended) { signOut(auth); alert('Account suspended. Contact theheliance@gmail.com'); return; }
+    if (d.suspended) {
+      const reason = d.deletedReason;
+      const msg = reason === 'deposit_rejected'
+        ? 'Your deposit was rejected and your account has been removed. Please register again with a valid payment receipt.'
+        : 'Account suspended. Contact theheliance@gmail.com';
+      signOut(auth);
+      alert(msg);
+      window.location.href = 'register.html';
+      return;
+    }
     renderUser(d);
   });
 
